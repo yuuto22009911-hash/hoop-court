@@ -17,3 +17,5 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </AdminGate>
   );
 }
+
+export const runtime = 'edge';

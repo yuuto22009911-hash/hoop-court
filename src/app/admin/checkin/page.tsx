@@ -170,3 +170,5 @@ export default function AdminCheckin() {
     </div>
   );
 }
+
+export const runtime = 'edge';

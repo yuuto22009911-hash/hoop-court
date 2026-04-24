@@ -134,3 +134,5 @@ export default function AdminReservations() {
     </div>
   );
 }
+
+export const runtime = 'edge';

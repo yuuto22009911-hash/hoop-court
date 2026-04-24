@@ -154,3 +154,5 @@ function StatusBadge({ status }: { status: Reservation["status"] }) {
     </span>
   );
 }
+
+export const runtime = 'edge';

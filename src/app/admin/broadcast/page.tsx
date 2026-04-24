@@ -93,3 +93,5 @@ export default function AdminBroadcast() {
     </div>
   );
 }
+
+export const runtime = 'edge';
