@@ -9,7 +9,8 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "pages:build": "next-on-pages --esbuild-args=--external:async_hooks",
-    "pages:deploy": "wrangler pages deploy .vercel/output/static"
+    "pages:deploy": "wrangler pages deploy .vercel/output/static",
+    "postinstall": "sh patch-request-context.sh"
   },
   "dependencies": {
     "@line/liff": "^2.24.0",
