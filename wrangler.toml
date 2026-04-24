@@ -1,0 +1,8 @@
+# Cloudflare Pages 用の wrangler 設定
+# 仕様書 §11.6 に対応。GitHub 連携でデプロイする場合はダッシュボード側の設定が優先されるため
+# ローカルから wrangler で直接デプロイする場合のみ影響する。
+
+name = "hoop-court"
+compatibility_date = "2026-04-23"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".vercel/output/static"
