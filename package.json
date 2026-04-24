@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "pages:build": "next-on-pages",
+    "pages:build": "next-on-pages --esbuild-args=--external:async_hooks",
     "pages:deploy": "wrangler pages deploy .vercel/output/static"
   },
   "dependencies": {
