@@ -292,3 +292,5 @@ function estimatePrice(
   }
   return sum * Math.max(1, sides);
 }
+
+export const runtime = 'edge';
