@@ -9,3 +9,9 @@ build
 .env.local
 .env.production
 .wrangler
+
+# Next.js auto-generated
+next-env.d.ts
+
+# TypeScript incremental cache
+tsconfig.tsbuildinfo
