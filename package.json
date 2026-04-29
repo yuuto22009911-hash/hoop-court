@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "pages:build": "next-on-pages --esbuild-args=--external:async_hooks",
+    "pages:build": "vercel build && sh scripts/patch-async-hooks.sh && next-on-pages -s",
     "pages:deploy": "wrangler pages deploy .vercel/output/static",
     "postinstall": "sh patch-request-context.sh"
   },
@@ -32,6 +32,7 @@
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.4",
     "typescript": "^5.4.5",
+    "vercel": "^52.0.0",
     "wrangler": "^3.63.2"
   },
   "engines": {
