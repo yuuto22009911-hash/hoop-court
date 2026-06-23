@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Hoop Court",
-  description: "バスケットボールコート予約",
+  title: "向日葵株式会社 コート予約",
+  description: "向日葵株式会社 バスケットコート予約",
   robots: { index: false, follow: false }
 };
 
@@ -12,7 +12,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#e60012"
+  themeColor: "#D86A3C"
 };
 
 export default function RootLayout({
