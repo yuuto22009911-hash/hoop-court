@@ -187,23 +187,23 @@ const DEMO_COURTS: Court[] = [
   {
     id: "demo-court-a",
     facility_id: "demo-facility",
-    name: "Aコート（フル）",
-    court_type: "FULL",
+    name: "ハーフコートA",
+    court_type: "HALF" as const,
     sides_max: 1,
-    capacity: 10,
+    capacity: 9,
     is_active: true,
     created_at: "2026-04-01T00:00:00+09:00"
   },
   {
     id: "demo-court-b",
     facility_id: "demo-facility",
-    name: "Bコート（ハーフ）",
-    court_type: "HALF",
-    sides_max: 2,
-    capacity: 10,
+    name: "ハーフコートB",
+    court_type: "HALF" as const,
+    sides_max: 1,
+    capacity: 9,
     is_active: true,
     created_at: "2026-04-01T00:00:00+09:00"
-  }
+  },
 ];
 
 function demoExec(action: string, p: Record<string, unknown>) {
@@ -281,7 +281,6 @@ function demoExec(action: string, p: Record<string, unknown>) {
         amount += base;
       }
       amount *= Math.max(1, payload.sides || 1);
-      if (hours > 4) throw new GasError("連続して予約できるのは最大 4 時間までです。", "P0003");
 
       const overlap = stored.some(
         (r) =>
