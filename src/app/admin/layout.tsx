@@ -11,7 +11,7 @@ import AdminTabBar from "@/components/AdminTabBar";
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <AdminGate>
-      <header className="app-header">Hoop Court 管理</header>
+      <header className="app-header">向日葵株式会社 管理</header>
       <main className="app-main">{children}</main>
       <AdminTabBar />
     </AdminGate>

@@ -77,14 +77,17 @@ function MyPageInner() {
       {items.map((r) => (
         <article
           key={r.id}
-          className="border border-[#e5e7eb] rounded-[8px] p-3 mb-3"
+          className="border border-line rounded-card p-3 mb-3"
         >
           <div className="flex justify-between items-center mb-1">
             <span className="font-semibold">{r.display_number}</span>
             <StatusBadge status={r.status} />
           </div>
           <div className="text-sm">{formatRange(r.starts_at, r.ends_at)}</div>
-          <div className="text-sm text-muted">{r.group_name}</div>
+          <div className="text-sm text-muted">
+            {r.mode === "FREE" ? "バスケフリーゴール" : "貸切"} ・ {r.group_name}
+            {r.mode === "FREE" && r.headcount ? ` ・ ${r.headcount}名` : ""}
+          </div>
           <div className="text-sm mt-1">
             {formatYen(Number(r.total_amount))}（
             {r.payment_status === "PAID" ? "支払い済み" : "未払い・当日現地で"}）
@@ -139,10 +142,10 @@ function MyPageInner() {
 
 function StatusBadge({ status }: { status: Reservation["status"] }) {
   const map: Record<Reservation["status"], { label: string; color: string }> = {
-    CONFIRMED: { label: "確定", color: "#047857" },
-    COMPLETED: { label: "完了", color: "#6b7280" },
-    CANCELED: { label: "キャンセル", color: "#b91c1c" },
-    NO_SHOW: { label: "No-Show", color: "#92400e" }
+    CONFIRMED: { label: "確定", color: "#5B8C4A" },
+    COMPLETED: { label: "完了", color: "#5E4F3C" },
+    CANCELED: { label: "キャンセル", color: "#C24A3A" },
+    NO_SHOW: { label: "No-Show", color: "#D9962A" }
   };
   const v = map[status];
   return (

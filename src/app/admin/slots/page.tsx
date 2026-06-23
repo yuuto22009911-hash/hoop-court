@@ -14,7 +14,7 @@ export default function AdminSlots() {
   const [courts, setCourts] = useState<Court[]>([]);
   const [courtId, setCourtId] = useState<string>("");
   const [from, setFrom] = useState<string>(todayHour(9));
-  const [to, setTo] = useState<string>(todayHour(22));
+  const [to, setTo] = useState<string>(todayHour(20));
   const [status, setStatus] = useState<"OPEN" | "CLOSED" | "BLOCKED">("CLOSED");
   const [result, setResult] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);

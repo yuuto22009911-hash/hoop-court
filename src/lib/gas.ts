@@ -14,6 +14,13 @@ import type {
   Reservation,
   UserProfile
 } from "./types";
+import {
+  CLOSE_HOUR,
+  FREE_MAX_HEADCOUNT,
+  OPEN_HOUR,
+  charterPrice,
+  freePrice
+} from "./pricing";
 
 const GAS_ENDPOINT = process.env.NEXT_PUBLIC_GAS_ENDPOINT ?? "";
 const DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
@@ -182,25 +189,15 @@ function demoHandler<T>(action: string, payload: unknown): Promise<T> {
   });
 }
 
-// 仕様書どおり 2 コート固定 (facility_id は任意)
+// バスケ体育館はハーフコート1面（向日葵株式会社の実構成）
 const DEMO_COURTS: Court[] = [
   {
-    id: "demo-court-a",
+    id: "demo-court",
     facility_id: "demo-facility",
-    name: "Aコート（フル）",
-    court_type: "FULL",
-    sides_max: 1,
-    capacity: 10,
-    is_active: true,
-    created_at: "2026-04-01T00:00:00+09:00"
-  },
-  {
-    id: "demo-court-b",
-    facility_id: "demo-facility",
-    name: "Bコート（ハーフ）",
+    name: "バスケコート（ハーフ1面）",
     court_type: "HALF",
-    sides_max: 2,
-    capacity: 10,
+    sides_max: 1,
+    capacity: FREE_MAX_HEADCOUNT,
     is_active: true,
     created_at: "2026-04-01T00:00:00+09:00"
   }
@@ -219,24 +216,29 @@ function demoExec(action: string, p: Record<string, unknown>) {
       const { court_id, from, to } = p as { court_id: string; from: string; to: string };
       const fromT = new Date(from).getTime();
       const toT = new Date(to).getTime();
+      const SLOT = 1800_000; // 30分
       const slots: AvailabilitySlot[] = [];
-      for (let t = fromT; t < toT; t += 3600_000) {
+      for (let t = fromT; t < toT; t += SLOT) {
         const st = new Date(t);
-        const hour = st.getHours();
-        if (hour < 9 || hour >= 22) continue;
-        const en = new Date(t + 3600_000);
-        const overlap = stored.some(
+        const en = new Date(t + SLOT);
+        // 営業時間 9:00–20:00 の枠だけ生成
+        const startMin = st.getHours() * 60 + st.getMinutes();
+        const endMin = startMin + 30;
+        if (startMin < OPEN_HOUR * 60 || endMin > CLOSE_HOUR * 60) continue;
+        // 貸切（CHARTER）の確定予約が重なる枠は予約不可とする
+        const blocked = stored.some(
           (r) =>
             r.court_id === court_id &&
             r.status === "CONFIRMED" &&
-            new Date(r.starts_at).getTime() < t + 3600_000 &&
+            r.mode === "CHARTER" &&
+            new Date(r.starts_at).getTime() < t + SLOT &&
             new Date(r.ends_at).getTime() > t
         );
         slots.push({
           slot_id: `demo-${court_id}-${st.toISOString()}`,
           starts_at: st.toISOString(),
           ends_at: en.toISOString(),
-          is_available: !overlap
+          is_available: !blocked
         });
       }
       return { slots };
@@ -263,34 +265,81 @@ function demoExec(action: string, p: Record<string, unknown>) {
 
     case "reservations.create": {
       const payload = p as unknown as CreateReservationPayload;
-      const court = DEMO_COURTS.find((c) => c.id === payload.court_id)!;
+      const mode = payload.mode ?? "CHARTER";
       const start = new Date(payload.starts_at);
       const end = new Date(payload.ends_at);
-      const hours = (end.getTime() - start.getTime()) / 3_600_000;
-      // 仕様書 §8.1 の簡易再現
-      let amount = 0;
-      for (let t = start.getTime(); t < end.getTime(); t += 3_600_000) {
-        const d = new Date(t);
-        const dow = d.getDay();
-        const hour = d.getHours();
-        let base: number;
-        if (dow === 0 || dow === 6) base = 3000;
-        else if (hour >= 18) base = 2400;
-        else base = 2000;
-        if (court.court_type === "HALF") base = Math.round(base * 0.82);
-        amount += base;
-      }
-      amount *= Math.max(1, payload.sides || 1);
-      if (hours > 4) throw new GasError("連続して予約できるのは最大 4 時間までです。", "P0003");
+      // タイムゾーン非依存に、文字列(YYYY-MM-DDTHH:MM...+09:00)から壁時計を取り出す
+      const ymd = payload.starts_at.slice(0, 10);
+      const startMinOfDay = hhmmToMin(payload.starts_at);
+      const endMinOfDay = hhmmToMin(payload.ends_at);
+      const durationMin = endMinOfDay - startMinOfDay;
 
-      const overlap = stored.some(
-        (r) =>
-          r.court_id === payload.court_id &&
-          r.status === "CONFIRMED" &&
-          new Date(r.starts_at) < end &&
-          new Date(r.ends_at) > start
-      );
-      if (overlap) throw new GasError("選択した時間帯はすでに予約済みです。", "P0001");
+      if (durationMin <= 0) {
+        throw new GasError("終了時刻は開始時刻より後にしてください。", "P0002");
+      }
+      if (startMinOfDay < OPEN_HOUR * 60 || endMinOfDay > CLOSE_HOUR * 60) {
+        throw new GasError(`予約は ${OPEN_HOUR}:00〜${CLOSE_HOUR}:00 の範囲で指定してください。`, "P0004");
+      }
+      // 当日予約はカウンターのみ（アプリは翌日以降）
+      if (ymd <= todayYmd()) {
+        throw new GasError("当日のご予約はカウンターのみ（要相談）です。", "P0005");
+      }
+
+      let amount: number;
+      if (mode === "FREE") {
+        if (durationMin % 30 !== 0) {
+          throw new GasError("フリーは30分単位でご指定ください。", "P0006");
+        }
+        const headcount = Number(payload.headcount) || 0;
+        if (headcount < 1 || headcount > FREE_MAX_HEADCOUNT) {
+          throw new GasError(`フリーの人数は 1〜${FREE_MAX_HEADCOUNT} 名でご指定ください。`, "P0007");
+        }
+        // 貸切と重なる枠にはフリー不可
+        const charterClash = stored.some(
+          (r) =>
+            r.court_id === payload.court_id &&
+            r.status === "CONFIRMED" &&
+            r.mode === "CHARTER" &&
+            new Date(r.starts_at) < end &&
+            new Date(r.ends_at) > start
+        );
+        if (charterClash) {
+          throw new GasError("選択した時間帯は貸切のため、フリーはご利用いただけません。", "P0001");
+        }
+        // 同一時間帯のフリー人数が規定人数を超えないか
+        const overlapHead = stored
+          .filter(
+            (r) =>
+              r.court_id === payload.court_id &&
+              r.status === "CONFIRMED" &&
+              r.mode === "FREE" &&
+              new Date(r.starts_at) < end &&
+              new Date(r.ends_at) > start
+          )
+          .reduce((s, r) => s + (Number(r.headcount) || 0), 0);
+        if (overlapHead + headcount > FREE_MAX_HEADCOUNT) {
+          throw new GasError(
+            `この時間帯のフリーは残り ${Math.max(0, FREE_MAX_HEADCOUNT - overlapHead)} 名です。`,
+            "P0008"
+          );
+        }
+        amount = freePrice(ymd, durationMin / 30, headcount);
+      } else {
+        // 貸切は1時間単位
+        if (startMinOfDay % 60 !== 0 || endMinOfDay % 60 !== 0) {
+          throw new GasError("貸切は1時間単位でご指定ください。", "P0009");
+        }
+        // いずれの確定予約とも重複不可（コートを占有するため）
+        const overlap = stored.some(
+          (r) =>
+            r.court_id === payload.court_id &&
+            r.status === "CONFIRMED" &&
+            new Date(r.starts_at) < end &&
+            new Date(r.ends_at) > start
+        );
+        if (overlap) throw new GasError("選択した時間帯はすでに予約済みです。", "P0001");
+        amount = charterPrice(ymd, startMinOfDay / 60, endMinOfDay / 60);
+      }
 
       const id = cryptoRandomId();
       const display_number = `R-${formatMMDD(start)}-${id.slice(0, 4)}`;
@@ -300,9 +349,10 @@ function demoExec(action: string, p: Record<string, unknown>) {
         display_number,
         user_id: userStored?.id ?? "demo-user",
         court_id: payload.court_id,
+        mode,
         starts_at: start.toISOString(),
         ends_at: end.toISOString(),
-        sides: payload.sides,
+        sides: 1,
         purpose: payload.purpose,
         group_name: payload.group_name,
         rep_name: payload.rep_name ?? "",
@@ -327,11 +377,10 @@ function demoExec(action: string, p: Record<string, unknown>) {
       const idx = stored.findIndex((r) => r.id === reservation_id);
       if (idx < 0) throw new GasError("見つかりません", "NOT_FOUND");
       const target = stored[idx];
+      // キャンセル規定: 利用開始 72 時間以上前は無料、72 時間未満は 50%。
+      // （無連絡不参加の 100% は管理側の No-Show で扱う）
       const hours = (new Date(target.starts_at).getTime() - Date.now()) / 3_600_000;
-      let rate = 0;
-      if (hours >= 24 * 7) rate = 0;
-      else if (hours >= 24 * 3) rate = 0.5;
-      else rate = 1;
+      const rate = hours >= 72 ? 0 : 0.5;
       target.status = "CANCELED";
       target.canceled_at = new Date().toISOString();
       target.updated_at = target.canceled_at;
@@ -431,6 +480,22 @@ function formatMMDD(d: Date): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const dd = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}${dd}`;
+}
+
+/** "YYYY-MM-DDTHH:MM:SS+09:00" から「その日の分(0-1440)」を取り出す（TZ非依存） */
+function hhmmToMin(iso: string): number {
+  const hh = Number(iso.slice(11, 13));
+  const mm = Number(iso.slice(14, 16));
+  return hh * 60 + mm;
+}
+
+/** 端末ローカル(JST想定)の今日 YYYY-MM-DD */
+function todayYmd(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
 }
 
 export { GasError, DEMO };

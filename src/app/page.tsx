@@ -19,7 +19,9 @@ import type { Court } from "@/lib/types";
 export default function CalendarPage() {
   return (
     <LiffGate>
-      <header className="app-header">Hoop Court</header>
+      <header className="app-header">
+        <span className="font-logo text-base">向日葵株式会社</span>
+      </header>
       <main className="app-main">
         <Calendar />
       </main>
@@ -80,20 +82,12 @@ function Calendar() {
 
   return (
     <div>
-      {/* コート切替 */}
-      <div className="flex gap-2 mb-3 overflow-x-auto">
-        {courts.map((c) => (
-          <button
-            key={c.id}
-            type="button"
-            className={`btn ${
-              c.id === activeCourtId ? "btn-primary" : "btn-ghost"
-            }`}
-            onClick={() => setActiveCourtId(c.id)}
-          >
-            {c.name}
-          </button>
-        ))}
+      {/* 施設・料金の案内 */}
+      <div className="flex items-center justify-between mb-3">
+        <div className="text-sm font-semibold">{courts[0]?.name ?? "バスケコート"}</div>
+        <Link href="/info" className="text-sm underline text-accent">
+          料金・ご利用案内
+        </Link>
       </div>
 
       {/* 月ナビ */}
@@ -136,9 +130,10 @@ function Calendar() {
           const key = formatYmd(cell.date);
           const ratio = availMap[key] ?? null;
           const sym = ratio === null ? "—" : availabilitySymbol(ratio);
-          const isPast = cell.date < today;
+          // 当日予約はカウンターのみのため、当日・過去日は選択不可（翌日以降のみ）
+          const isPastOrToday = cell.date <= today;
           const isOther = cell.date.getMonth() !== month.getMonth();
-          const disabled = isPast || isOther || sym === "×";
+          const disabled = isPastOrToday || isOther || sym === "×";
           if (disabled) {
             return (
               <div
@@ -167,8 +162,19 @@ function Calendar() {
       </div>
 
       {/* 凡例 */}
-      <p className="mt-3 text-sm text-muted">
-        ◎ 空きあり / ○ 残りわずか / × 満席
+      <p className="mt-3 text-sm text-muted">◎ 空きあり / ○ 残りわずか / × 満席</p>
+      <p className="mt-1 text-xs text-muted">
+        ※ 当日のご予約はカウンターのみ（要相談）。アプリは翌日以降の枠をご予約いただけます。
+      </p>
+      <p className="mt-4 text-xs text-muted">
+        <a
+          href="https://himawari-co.pages.dev"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
+          向日葵株式会社 コーポレートサイト
+        </a>
       </p>
     </div>
   );

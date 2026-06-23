@@ -89,7 +89,7 @@ export default function AdminDashboard() {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border border-[#e5e7eb] rounded-[8px] p-3">
+    <div className="border border-line rounded-card p-3">
       <div className="text-xs text-muted">{label}</div>
       <div className="text-xl font-semibold">{value}</div>
     </div>
