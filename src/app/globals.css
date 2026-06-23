@@ -11,7 +11,7 @@ html,
 body {
   background: #f5f5f5;
   color: #1f2937;
-  font-family: "Hiragino Sans", "Yu Gothic", -apple-system, sans-serif;
+  font-family: "Noto Sans JP", "Zen Maru Gothic", "Hiragino Sans", -apple-system, sans-serif;
   font-size: 14px;
   line-height: 1.6;
 }
@@ -29,7 +29,7 @@ body {
 
 .app-header {
   height: 48px;
-  background: #e60012;
+  background: #D86A3C;
   color: #ffffff;
   display: flex;
   align-items: center;
@@ -77,7 +77,7 @@ body {
 }
 
 .app-tabbar a.active {
-  color: #e60012;
+  color: #D86A3C;
 }
 
 /* ボタン */
@@ -92,7 +92,7 @@ body {
 }
 
 .btn-primary {
-  background: #e60012;
+  background: #D86A3C;
   color: #ffffff;
 }
 
@@ -130,7 +130,7 @@ label.field textarea {
 label.field input:focus-visible,
 label.field select:focus-visible,
 label.field textarea:focus-visible {
-  outline: 2px solid #e60012;
+  outline: 2px solid #D86A3C;
   outline-offset: 1px;
 }
 
@@ -152,7 +152,7 @@ label.field textarea:focus-visible {
   cursor: pointer;
 }
 .cal-cell[data-today="true"] {
-  outline: 2px solid #e60012;
+  outline: 2px solid #D86A3C;
   outline-offset: -2px;
 }
 .cal-cell[data-disabled="true"] {
