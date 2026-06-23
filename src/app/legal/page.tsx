@@ -11,14 +11,14 @@ export default function LegalPage() {
       <header className="app-header">特定商取引法表記</header>
       <main className="app-main">
         <dl className="text-sm">
-          <Row label="販売事業者" value="株式会社 〇〇〇〇" />
-          <Row label="代表者" value="〇〇 〇〇" />
-          <Row label="所在地" value="〇〇県〇〇市〇〇町 0-0-0" />
-          <Row label="電話番号" value="00-0000-0000（受付時間 10:00-18:00 平日）" />
-          <Row label="メールアドレス" value="info@example.com" />
+          <Row label="販売事業者" value="向日葵株式会社" />
+          <Row label="代表者" value="川村 有希" />
+          <Row label="所在地" value="〒574-0041 大阪府大東市浜町2-4" />
+          <Row label="電話番号" value="090-7889-2729" />
+          <Row label="メールアドレス" value="himawari20251113@gmail.com" />
           <Row label="販売価格" value="各予約画面に表示（消費税込み）" />
           <Row label="商品代金以外の必要料金" value="なし" />
-          <Row label="支払方法" value="来場時の現地支払い（現金 / PayPay / 口座振込）" />
+          <Row label="支払方来場時の現地支払い（PayPay・当日カウンターは現金も可）" />
           <Row label="支払時期" value="ご利用当日、受付時" />
           <Row
             label="商品の引渡時期"
@@ -26,7 +26,7 @@ export default function LegalPage() {
           />
           <Row
             label="返品・キャンセル"
-            value="利用開始 72 時間以上前: 料金発生なし / 72 時間未満: 料金 50% / 72 時間未満かつ無連絡: 料金 100%（仕様書 §8.3）"
+            value="当面いつでも無料（2026年6月 暫定方針）"
           />
         </dl>
         <p className="text-xs text-muted mt-6">
