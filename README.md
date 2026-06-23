@@ -89,7 +89,22 @@ npm run build
 
 ## デプロイ (仕様書 §11.6)
 
-Cloudflare Pages + `@cloudflare/next-on-pages` を使う。
+Cloudflare Pages + `@cloudflare/next-on-pages` を使う。デプロイ方法は2通り。
+
+### 方法A: GitHub Actions（推奨・自動）
+
+`.github/workflows/deploy.yml` が **main への push / マージで自動デプロイ**する（Git OAuth 連携に
+依存しない）。事前に GitHub → Settings → Secrets and variables → Actions で以下を設定する。
+
+- **Secrets**: `CLOUDFLARE_API_TOKEN`（Pages 編集権限）/ `CLOUDFLARE_ACCOUNT_ID`
+- **Variables**（ビルド時にバンドルへ埋め込み・任意）:
+  - `NEXT_PUBLIC_DEMO_MODE` … 未設定なら `1`（DEMO）。本番LINE運用時は `0`
+  - `NEXT_PUBLIC_LIFF_ID` / `NEXT_PUBLIC_GAS_ENDPOINT` / `NEXT_PUBLIC_ADMIN_LIFF_ID`
+
+> `NEXT_PUBLIC_*` はビルド時にクライアントへ埋め込まれるため、Cloudflare ダッシュボードの
+> 環境変数ではなく **GitHub 側の Variables** が使われる（Direct Upload のため）。
+
+### 方法B: Cloudflare Dashboard の Git 連携
 
 1. GitHub にリポジトリを push
 2. Cloudflare Dashboard → Workers & Pages → Create → Pages → Connect to Git
@@ -102,6 +117,8 @@ Cloudflare Pages + `@cloudflare/next-on-pages` を使う。
    - `NEXT_PUBLIC_GAS_ENDPOINT=<Apps Script の /exec URL>`
    - `NEXT_PUBLIC_LIFF_ID=<LIFF ID>`
 5. Deploy → `*.pages.dev` の URL を LIFF の Endpoint URL に設定
+
+> 注: Git 連携(OAuth)が切断されると push を検知できずデプロイが止まる。安定性のため方法Aを推奨。
 
 ## 画面遷移 (仕様書 §3.2)
 

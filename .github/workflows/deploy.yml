@@ -1,0 +1,63 @@
+name: Deploy (Cloudflare Pages)
+
+# Git OAuth 連携に依存せず、main への push / マージで自動デプロイする。
+# next-on-pages でビルド → wrangler で Cloudflare Pages プロジェクト "hoop-court" に
+# Direct Upload する。
+#
+# 必要な設定（GitHub → Settings → Secrets and variables → Actions）:
+#   Secrets:
+#     - CLOUDFLARE_API_TOKEN  … Cloudflare の API トークン（Pages 編集権限）
+#     - CLOUDFLARE_ACCOUNT_ID … Cloudflare のアカウント ID
+#   Variables（任意・ビルド時にバンドルへ埋め込まれる）:
+#     - NEXT_PUBLIC_DEMO_MODE     … 未設定なら "1"（DEMO）。本番LINE運用時は "0"
+#     - NEXT_PUBLIC_LIFF_ID       … LIFF ID（本番運用時）
+#     - NEXT_PUBLIC_GAS_ENDPOINT  … Apps Script の /exec URL（本番運用時）
+#     - NEXT_PUBLIC_ADMIN_LIFF_ID … 管理画面用 LIFF ID（任意）
+#
+# ※ NEXT_PUBLIC_* はビルド時にクライアントバンドルへ埋め込まれるため、Cloudflare
+#    ダッシュボード側の環境変数ではなく「ここ（GitHub 側の Variables）」の値が使われる。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Build & Deploy
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      deployments: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Build (next-on-pages)
+        run: npm run pages:build
+        env:
+          NEXT_PUBLIC_DEMO_MODE: ${{ vars.NEXT_PUBLIC_DEMO_MODE || '1' }}
+          NEXT_PUBLIC_LIFF_ID: ${{ vars.NEXT_PUBLIC_LIFF_ID }}
+          NEXT_PUBLIC_GAS_ENDPOINT: ${{ vars.NEXT_PUBLIC_GAS_ENDPOINT }}
+          NEXT_PUBLIC_ADMIN_LIFF_ID: ${{ vars.NEXT_PUBLIC_ADMIN_LIFF_ID }}
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          command: pages deploy .vercel/output/static --project-name=hoop-court --branch=main
