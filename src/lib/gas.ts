@@ -19,7 +19,8 @@ import {
   FREE_MAX_HEADCOUNT,
   OPEN_HOUR,
   charterPrice,
-  freePrice
+  freePrice,
+  isHolidayRate
 } from "./pricing";
 
 const GAS_ENDPOINT = process.env.NEXT_PUBLIC_GAS_ENDPOINT ?? "";
@@ -325,9 +326,15 @@ function demoExec(action: string, p: Record<string, unknown>) {
         }
         amount = freePrice(ymd, durationMin / 30, headcount);
       } else {
-        // 貸切は1時間単位
-        if (startMinOfDay % 60 !== 0 || endMinOfDay % 60 !== 0) {
-          throw new GasError("貸切は1時間単位でご指定ください。", "P0009");
+        // 貸切: 平日は初回1時間＋30分単位で延長 / 土日祝は1時間単位
+        if (durationMin < 60) {
+          throw new GasError("貸切は1時間以上でご指定ください。", "P0009");
+        }
+        if (durationMin % 30 !== 0) {
+          throw new GasError("貸切は30分単位でご指定ください。", "P0009");
+        }
+        if (isHolidayRate(ymd) && durationMin % 60 !== 0) {
+          throw new GasError("土日祝の貸切は1時間単位でご指定ください。", "P0010");
         }
         // いずれの確定予約とも重複不可（コートを占有するため）
         const overlap = stored.some(
@@ -338,7 +345,7 @@ function demoExec(action: string, p: Record<string, unknown>) {
             new Date(r.ends_at) > start
         );
         if (overlap) throw new GasError("選択した時間帯はすでに予約済みです。", "P0001");
-        amount = charterPrice(ymd, startMinOfDay / 60, endMinOfDay / 60);
+        amount = charterPrice(ymd, startMinOfDay, endMinOfDay);
       }
 
       const id = cryptoRandomId();
@@ -377,10 +384,8 @@ function demoExec(action: string, p: Record<string, unknown>) {
       const idx = stored.findIndex((r) => r.id === reservation_id);
       if (idx < 0) throw new GasError("見つかりません", "NOT_FOUND");
       const target = stored[idx];
-      // キャンセル規定: 利用開始 72 時間以上前は無料、72 時間未満は 50%。
-      // （無連絡不参加の 100% は管理側の No-Show で扱う）
-      const hours = (new Date(target.starts_at).getTime() - Date.now()) / 3_600_000;
-      const rate = hours >= 72 ? 0 : 0.5;
+      // キャンセル規定: 当面いつでも無料（2026-06 暫定方針・himawari-app と一致）
+      const rate = 0;
       target.status = "CANCELED";
       target.canceled_at = new Date().toISOString();
       target.updated_at = target.canceled_at;

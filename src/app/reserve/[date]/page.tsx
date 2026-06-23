@@ -1,8 +1,9 @@
 /**
  * S-02 時刻表 + S-03 利用内容入力（1 画面に統合）
- *   - 予約種別: 貸切（1時間単位）/ バスケフリーゴール（30分単位・人数）
- *   - ハーフコート1面前提（コート・面数の選択なし）
- *   - 当日予約はカウンターのみ（アプリは翌日以降）
+ *   - 予約種別: 貸切（コート）/ バスケフリーゴール
+ *   - 貸切: 初回1時間〜・以降30分単位で延長（土日祝は1時間単位）
+ *   - フリー: 30分単位・人数あたり（最大9名・バスケ限定）
+ *   - ハーフコート1面前提。当日予約はカウンターのみ（アプリは翌日以降）。
  *   - 金額は向日葵株式会社 公式料金に準拠（lib/pricing）
  */
 
@@ -16,7 +17,9 @@ import {
   CHARTER_EVENING_FROM,
   CHARTER_HOLIDAY,
   CHARTER_WEEKDAY_EVENING,
+  CHARTER_WEEKDAY_EVENING_30,
   CHARTER_WEEKDAY_MORNING,
+  CHARTER_WEEKDAY_MORNING_30,
   CLOSE_HOUR,
   FREE_MAX_HEADCOUNT,
   OPEN_HOUR,
@@ -31,12 +34,22 @@ const PAD = (n: number) => String(n).padStart(2, "0");
 const SLOTS_PER_DAY = (CLOSE_HOUR - OPEN_HOUR) * 2; // 30分スロット数
 const WDAY = ["日", "月", "火", "水", "木", "金", "土"];
 
-/** 30分スロット index（0=OPEN:00）→ "HH:MM" */
-function slotTime(idx: number): string {
-  const min = OPEN_HOUR * 60 + idx * 30;
+/** 30分スロット index（0=OPEN:00）→ その日の分 */
+function slotMin(idx: number): number {
+  return OPEN_HOUR * 60 + idx * 30;
+}
+/** 分 → "HH:MM" */
+function minToHHMM(min: number): string {
   return `${PAD(Math.floor(min / 60))}:${PAD(min % 60)}`;
 }
-
+/** 分(長さ) → "X時間Y分" */
+function formatDuration(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h && m) return `${h}時間${m}分`;
+  if (h) return `${h}時間`;
+  return `${m}分`;
+}
 function todayYmd(): string {
   const d = new Date();
   return `${d.getFullYear()}-${PAD(d.getMonth() + 1)}-${PAD(d.getDate())}`;
@@ -52,9 +65,7 @@ export default function ReserveDetailPage() {
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [mode, setMode] = useState<BookingMode>("CHARTER");
 
-  // 貸切は1時間単位（hour 9..20）、フリーは30分スロット index
-  const [startHour, setStartHour] = useState<number | null>(null);
-  const [endHour, setEndHour] = useState<number | null>(null);
+  // 30分スロット index（開始・終了は exclusive）
   const [startSlot, setStartSlot] = useState<number | null>(null);
   const [endSlot, setEndSlot] = useState<number | null>(null);
 
@@ -92,44 +103,9 @@ export default function ReserveDetailPage() {
     return arr;
   }, [slots]);
 
-  // 貸切: 1時間ブロックの空き（hour → boolean）
-  const hourAvail = useMemo(() => {
-    const map: Record<number, boolean> = {};
-    for (let h = OPEN_HOUR; h < CLOSE_HOUR; h++) {
-      const i = (h - OPEN_HOUR) * 2;
-      map[h] = Boolean(slotAvail[i] && slotAvail[i + 1]);
-    }
-    return map;
-  }, [slotAvail]);
-
   function resetSelection() {
-    setStartHour(null);
-    setEndHour(null);
     setStartSlot(null);
     setEndSlot(null);
-  }
-
-  function onTapHour(h: number) {
-    if (!hourAvail[h]) return;
-    if (startHour === null || endHour !== null) {
-      setStartHour(h);
-      setEndHour(null);
-      return;
-    }
-    if (h === startHour) {
-      setStartHour(null);
-      return;
-    }
-    const s = Math.min(startHour, h);
-    const e = Math.max(startHour, h) + 1;
-    for (let x = s; x < e; x++) {
-      if (!hourAvail[x]) {
-        alert("選択した時間帯に予約できない枠が含まれます。");
-        return;
-      }
-    }
-    setStartHour(s);
-    setEndHour(e);
   }
 
   function onTapSlot(i: number) {
@@ -145,9 +121,22 @@ export default function ReserveDetailPage() {
     }
     const s = Math.min(startSlot, i);
     const e = Math.max(startSlot, i) + 1;
+    // 空き枠の連続チェック
     for (let x = s; x < e; x++) {
       if (!slotAvail[x]) {
         alert("選択した時間帯に予約できない枠が含まれます。");
+        return;
+      }
+    }
+    const segs = e - s;
+    // 種別ごとの単位チェック
+    if (mode === "CHARTER") {
+      if (segs < 2) {
+        alert("貸切は1時間以上でご指定ください。");
+        return;
+      }
+      if (holiday && segs % 2 !== 0) {
+        alert("土日祝の貸切は1時間単位でご指定ください。");
         return;
       }
     }
@@ -156,32 +145,18 @@ export default function ReserveDetailPage() {
   }
 
   const amount = useMemo(() => {
-    if (mode === "CHARTER") {
-      if (startHour === null || endHour === null) return 0;
-      return charterPrice(date, startHour, endHour);
-    }
     if (startSlot === null || endSlot === null) return 0;
+    if (mode === "CHARTER") return charterPrice(date, slotMin(startSlot), slotMin(endSlot));
     return freePrice(date, endSlot - startSlot, headcount);
-  }, [mode, startHour, endHour, startSlot, endSlot, headcount, date]);
+  }, [mode, startSlot, endSlot, headcount, date]);
 
-  const hasSelection =
-    mode === "CHARTER"
-      ? startHour !== null && endHour !== null
-      : startSlot !== null && endSlot !== null;
-
+  const hasSelection = startSlot !== null && endSlot !== null;
   const canProceed = hasSelection && groupName.trim().length > 0 && !isPastOrToday;
 
   function handleProceed() {
-    if (!canProceed || !courtId) return;
-    let starts: string;
-    let ends: string;
-    if (mode === "CHARTER") {
-      starts = `${date}T${PAD(startHour as number)}:00:00+09:00`;
-      ends = `${date}T${PAD(endHour as number)}:00:00+09:00`;
-    } else {
-      starts = `${date}T${slotTime(startSlot as number)}:00+09:00`;
-      ends = `${date}T${slotTime(endSlot as number)}:00+09:00`;
-    }
+    if (!canProceed || !courtId || startSlot === null || endSlot === null) return;
+    const starts = `${date}T${minToHHMM(slotMin(startSlot))}:00+09:00`;
+    const ends = `${date}T${minToHHMM(slotMin(endSlot))}:00+09:00`;
     const query = new URLSearchParams({
       court: courtId,
       mode,
@@ -260,14 +235,15 @@ export default function ReserveDetailPage() {
         </div>
 
         {/* 料金の目安 */}
-        <div className="price-hint mb-3">
+        <div className="price-hint mb-2">
           {mode === "CHARTER" ? (
             holiday ? (
-              <>土日祝：{formatYen(CHARTER_HOLIDAY)} / 1時間（9:00〜20:00 通し・1時間単位）</>
+              <>土日祝：{formatYen(CHARTER_HOLIDAY)} / 1時間（9:00〜20:00・1時間単位）</>
             ) : (
               <>
-                平日：朝(〜{CHARTER_EVENING_FROM}時) {formatYen(CHARTER_WEEKDAY_MORNING)} / 夕(
-                {CHARTER_EVENING_FROM}時〜) {formatYen(CHARTER_WEEKDAY_EVENING)}（1時間単位）
+                平日 朝(〜{CHARTER_EVENING_FROM}時) {formatYen(CHARTER_WEEKDAY_MORNING)}/1h（延長30分{" "}
+                {formatYen(CHARTER_WEEKDAY_MORNING_30)}）／夕({CHARTER_EVENING_FROM}時〜){" "}
+                {formatYen(CHARTER_WEEKDAY_EVENING)}/1h（延長30分 {formatYen(CHARTER_WEEKDAY_EVENING_30)}）
               </>
             )
           ) : (
@@ -277,68 +253,43 @@ export default function ReserveDetailPage() {
             </>
           )}
         </div>
+        <p className="text-xs text-muted mb-3">
+          {mode === "CHARTER"
+            ? holiday
+              ? "土日祝の貸切は1時間単位です。"
+              : "初回1時間から、以降は30分単位で延長できます。"
+            : "30分単位でご指定いただけます。"}
+        </p>
 
-        {/* 時刻表 */}
-        {mode === "CHARTER" ? (
-          <div className="timetable mb-4">
-            {Array.from({ length: CLOSE_HOUR - OPEN_HOUR }, (_, k) => OPEN_HOUR + k).map((h) => {
-              const available = hourAvail[h];
-              const inRange =
-                startHour !== null &&
-                (endHour === null ? h === startHour : h >= startHour && h < endHour);
-              return (
-                <button
-                  key={h}
-                  type="button"
-                  className={`tt-row ${inRange ? "sel" : ""}`}
-                  onClick={() => onTapHour(h)}
-                  aria-pressed={inRange}
-                  disabled={!available}
-                >
-                  <span>
-                    {PAD(h)}:00〜{PAD(h + 1)}:00
-                  </span>
-                  <span>{available ? (inRange ? "✓" : "◎") : "×"}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="timetable mb-4">
-            {Array.from({ length: SLOTS_PER_DAY }, (_, i) => i).map((i) => {
-              const available = slotAvail[i];
-              const inRange =
-                startSlot !== null &&
-                (endSlot === null ? i === startSlot : i >= startSlot && i < endSlot);
-              return (
-                <button
-                  key={i}
-                  type="button"
-                  className={`tt-row ${inRange ? "sel" : ""}`}
-                  onClick={() => onTapSlot(i)}
-                  aria-pressed={inRange}
-                  disabled={!available}
-                >
-                  <span>
-                    {slotTime(i)}〜{slotTime(i + 1)}
-                  </span>
-                  <span>{available ? (inRange ? "✓" : "◎") : "×"}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* 時刻表（30分） */}
+        <div className="timetable mb-4">
+          {Array.from({ length: SLOTS_PER_DAY }, (_, i) => i).map((i) => {
+            const available = slotAvail[i];
+            const inRange =
+              startSlot !== null &&
+              (endSlot === null ? i === startSlot : i >= startSlot && i < endSlot);
+            return (
+              <button
+                key={i}
+                type="button"
+                className={`tt-row ${inRange ? "sel" : ""}`}
+                onClick={() => onTapSlot(i)}
+                aria-pressed={inRange}
+                disabled={!available}
+              >
+                <span>
+                  {minToHHMM(slotMin(i))}〜{minToHHMM(slotMin(i + 1))}
+                </span>
+                <span>{available ? (inRange ? "✓" : "◎") : "×"}</span>
+              </button>
+            );
+          })}
+        </div>
 
         {hasSelection && (
           <p className="mb-3 text-sm">
-            選択:{" "}
-            {mode === "CHARTER"
-              ? `${PAD(startHour as number)}:00〜${PAD(endHour as number)}:00（${
-                  (endHour as number) - (startHour as number)
-                } 時間）`
-              : `${slotTime(startSlot as number)}〜${slotTime(endSlot as number)}（${
-                  ((endSlot as number) - (startSlot as number)) * 30
-                } 分）`}
+            選択: {minToHHMM(slotMin(startSlot as number))}〜{minToHHMM(slotMin(endSlot as number))}（
+            {formatDuration((slotMin(endSlot as number) - slotMin(startSlot as number)))}）
           </p>
         )}
 

@@ -127,8 +127,7 @@ export default function ConfirmPage() {
             className="mt-1"
           />
           <span className="text-sm">
-            キャンセル規定（利用開始 72 時間以上前は無料、72 時間未満は 50%、無連絡不参加は 100%）と
-            利用規約に同意します
+            キャンセル規定（当面はいつでも無料です）と利用規約に同意します
           </span>
         </label>
 

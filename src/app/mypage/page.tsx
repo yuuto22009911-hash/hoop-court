@@ -57,9 +57,9 @@ function MyPageInner() {
     try {
       const r = await cancelReservation(getIdToken(), id);
       alert(
-        `キャンセルを受け付けました。\n` +
-          `キャンセル料率: ${Math.round(r.charge_rate * 100)}%\n` +
-          `キャンセル料: ${formatYen(r.charge_amount)}`
+        r.charge_amount > 0
+          ? `キャンセルを受け付けました。\nキャンセル料率: ${Math.round(r.charge_rate * 100)}%\nキャンセル料: ${formatYen(r.charge_amount)}`
+          : "キャンセルを受け付けました。キャンセル料はかかりません。"
       );
       await load();
     } catch (err) {

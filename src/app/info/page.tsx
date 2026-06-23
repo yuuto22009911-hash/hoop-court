@@ -7,10 +7,10 @@ import Link from "next/link";
 import { formatYen } from "@/lib/format";
 import {
   CHARTER_HOLIDAY,
-  CHARTER_OVERTIME_WEEKDAY_EVENING,
-  CHARTER_OVERTIME_WEEKDAY_MORNING,
   CHARTER_WEEKDAY_EVENING,
+  CHARTER_WEEKDAY_EVENING_30,
   CHARTER_WEEKDAY_MORNING,
+  CHARTER_WEEKDAY_MORNING_30,
   FREE_HOLIDAY_PER30,
   FREE_MAX_HEADCOUNT,
   FREE_WEEKDAY_PER30
@@ -51,9 +51,8 @@ export default function InfoPage() {
             </tbody>
           </table>
           <p className="text-xs text-muted mt-1">
-            予約は1時間単位（追加も1時間単位）。ご予約時間を過ぎると、平日朝
-            {formatYen(CHARTER_OVERTIME_WEEKDAY_MORNING)}・平日夕
-            {formatYen(CHARTER_OVERTIME_WEEKDAY_EVENING)}（30分ごと）の追加料金が発生します。
+            延長30分：平日朝 {formatYen(CHARTER_WEEKDAY_MORNING_30)} / 平日夕{" "}
+            {formatYen(CHARTER_WEEKDAY_EVENING_30)}。初回1時間から、以降は30分単位で延長できます（土日祝は1時間単位）。次のご予約がある場合は、延長より予約を優先します。
           </p>
         </Section>
 
@@ -80,6 +79,7 @@ export default function InfoPage() {
             <li>お支払いは PayPay（当日カウンターは現金も可）。</li>
             <li>ご予約はアプリ（LINE）から24時間可能。コートはご予約を最優先でご案内します。</li>
             <li>当日のご予約・変更はカウンターのみ（要相談）です。</li>
+            <li>キャンセルは当面無料です（いつでもキャンセル可・暫定）。</li>
           </ul>
         </Section>
 
