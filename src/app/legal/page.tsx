@@ -10,7 +10,7 @@ export default function LegalPage() {
       <main className="app-main">
         <dl className="text-sm">
           <Row label="販売事業者" value="向日葵株式会社（HIMAWARI）" />
-          <Row label="代表者" value="川村 有希" />
+          <Row label="代表者" value="代表取締役社長 川村 有希" />
           <Row label="所在地" value="〒574-0041 大阪府大東市浜町2-4" />
           <Row label="電話番号" value="090-7889-2729" />
           <Row label="メールアドレス" value="himawari20251113@gmail.com" />

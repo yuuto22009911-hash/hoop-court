@@ -92,7 +92,7 @@ export default function InfoPage() {
             <li>フットバス {formatYen(1500)} / 20分</li>
           </ul>
           <p className="text-xs text-muted mt-1">
-            リラクゼーションはネット予約のみ。マッサージチェアもご用意しています（料金は店頭にて）。
+            リラクゼーションはネット予約のみ。マッサージチェアもご用意しています（料金は準備中）。
           </p>
           <p className="text-sm mt-2 font-semibold text-accent">
             コート予約＋リラクゼーション同時予約で、次回コート 200円引き！

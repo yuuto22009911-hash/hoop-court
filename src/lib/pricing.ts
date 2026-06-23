@@ -42,7 +42,7 @@ export const FREE_WEEKDAY_PER30 = 440;
 export const FREE_HOLIDAY_PER30 = 550;
 /**
  * フリーの規定人数（同一時間帯あたり）。
- * ⚠ 要確認: お客様指定が「規定人数要設定」のため暫定値。確定後に更新すること。
+ * 9名（himawari-app の予約上限 `partySize > 9` 制御・コーポレートサイト表記と一致）。
  */
 export const FREE_MAX_HEADCOUNT = 9;
 
