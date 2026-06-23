@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "pages:build": "vercel build && sh scripts/patch-async-hooks.sh && next-on-pages -s",
+    "pages:build": "sh scripts/pages-build.sh",
     "pages:deploy": "wrangler pages deploy .vercel/output/static",
     "postinstall": "sh patch-request-context.sh"
   },
