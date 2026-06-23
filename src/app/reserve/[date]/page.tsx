@@ -123,7 +123,7 @@ export default function ReserveDetailPage() {
 
   return (
         <LiffGateWrapper>
-              <header className="app-header">時刻を選ぶ</header>header>
+              <header className="app-header">時刻を選ぶ</header>
               <main className="app-main">
                 {/* コート切替 */}
                       <div className="flex gap-2 mb-3 overflow-x-auto">
@@ -139,9 +139,9 @@ export default function ReserveDetailPage() {
                                       }}
                                     >
                         {c.name}
-                      </button>button>
+                      </button>
                     ))}
-                      </div>div>
+                      </div>
               
                 {/* 時刻表 */}
                       <div className="border border-[#e5e7eb] rounded-[8px] overflow-hidden mb-4">
@@ -165,25 +165,25 @@ export default function ReserveDetailPage() {
                                                         onClick={() => onTapHour(r.hour, r.available)}
                                                         disabled={!r.available}
                                                       >
-                                                      <span>{r.hour}:00</span>span>
+                                                      <span>{r.hour}:00</span>
                                                       <span className="text-xs">
                                                         {r.available ? "◎" : "×"}
-                                                      </span>span>
-                                      </button>button>
+                                                      </span>
+                                      </button>
                                     );
         })}
-                      </div>div>
+                      </div>
               
                 {/* 利用内容 */}
                       <label className="field">
-                                種別<span className="req">*</span>span>
+                                種別<span className="req">*</span>
                                 <select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
-                                            <option value="貸切（コート）">貸切（コート）</option>option>
-                                            <option value="バスケフリーゴール">バスケフリーゴール</option>option>
-                                </select>select>
-                      </label>label>
+                                            <option value="貸切（コート）">貸切（コート）</option>
+                                            <option value="バスケフリーゴール">バスケフリーゴール</option>
+                                </select>
+                      </label>
                       <label className="field">
-                                団体名<span className="req">*</span>span>
+                                団体名<span className="req">*</span>
                                 <input
                                               type="text"
                                               value={groupName}
@@ -191,7 +191,7 @@ export default function ReserveDetailPage() {
                                               maxLength={60}
                                               required
                                             />
-                      </label>label>
+                      </label>
                       <label className="field">
                                 代表者名
                                 <input
@@ -200,7 +200,7 @@ export default function ReserveDetailPage() {
                                               onChange={(e) => setRepName(e.target.value)}
                                               maxLength={40}
                                             />
-                      </label>label>
+                      </label>
                       <label className="field">
                                 人数
                                 <input
@@ -213,7 +213,7 @@ export default function ReserveDetailPage() {
                                                               setHeadcount(e.target.value === "" ? "" : Number(e.target.value))
                                               }
                                             />
-                      </label>label>
+                      </label>
                       <label className="field">
                                 備考
                                 <textarea
@@ -222,10 +222,10 @@ export default function ReserveDetailPage() {
                                               onChange={(e) => setNote(e.target.value)}
                                               maxLength={200}
                                             />
-                      </label>label>
+                      </label>
               
                 {amount > 0 && (
-                    <p className="mb-3 font-semibold">金額（目安）: {formatYen(amount)}</p>p>
+                    <p className="mb-3 font-semibold">金額（目安）: {formatYen(amount)}</p>
                       )}
               
                       <button
@@ -235,9 +235,9 @@ export default function ReserveDetailPage() {
                                   disabled={!canProceed}
                                 >
                                 金額を確認する
-                      </button>button>
-              </main>main>
-        </LiffGateWrapper>LiffGateWrapper>
+                      </button>
+              </main>
+        </LiffGateWrapper>
       );
 }
 
@@ -251,7 +251,7 @@ function LiffGateWrapper({ children }: { children: React.ReactNode }) {
           <LiffGate>
             {children}
                 <TabBar />
-          </LiffGate>LiffGate>
+          </LiffGate>
         );
 }
 
