@@ -299,4 +299,4 @@ function estimatePrice(
     return sum;
 }
 
-export const runtime = "edge";</LiffGateWrapper>
+export const runtime = "edge";
