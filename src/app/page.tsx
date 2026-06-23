@@ -19,7 +19,7 @@ import type { Court } from "@/lib/types";
 export default function CalendarPage() {
   return (
     <LiffGate>
-      <header className="app-header">Hoop Court</header>
+      <header className="app-header">向日葵株式会社</header>
       <main className="app-main">
         <Calendar />
       </main>
@@ -170,6 +170,20 @@ function Calendar() {
       <p className="mt-3 text-sm text-muted">
         ◎ 空きあり / ○ 残りわずか / × 満席
       </p>
+
+      {/* 支払い案内（旧: 振込削除済み） */}
+      <div className="bento mt-4">
+        <div className="bento-tile">
+          <div className="text-accent text-sm font-semibold mb-1">支払い</div>
+          <div className="font-bold">PayPay</div>
+          <div className="text-muted">当日カウンターは現金も可</div>
+        </div>
+        <div className="bento-tile">
+          <div className="text-accent text-sm font-semibold mb-1">キャンセル</div>
+          <div className="font-bold">当面いつでも無料</div>
+          <div className="text-muted">2026年6月 暫定方針</div>
+        </div>
+      </div>
     </div>
   );
 }
