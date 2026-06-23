@@ -18,7 +18,7 @@ export default function LegalPage() {
           <Row label="メールアドレス" value="himawari20251113@gmail.com" />
           <Row label="販売価格" value="各予約画面に表示（消費税込み）" />
           <Row label="商品代金以外の必要料金" value="なし" />
-          <Row label="支払方来場時の現地支払い（PayPay・当日カウンターは現金も可）" />
+          <Row label="支払方法" value="来場時の現地支払い（PayPay・当日カウンターは現金も可）" />
           <Row label="支払時期" value="ご利用当日、受付時" />
           <Row
             label="商品の引渡時期"
