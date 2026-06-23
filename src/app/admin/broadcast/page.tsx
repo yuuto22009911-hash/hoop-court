@@ -55,8 +55,8 @@ export default function AdminBroadcast() {
   return (
     <div>
       <div
-        className="border border-[#e5e7eb] rounded-[8px] p-3 mb-3"
-        style={{ background: "#fff7ed" }}
+        className="border border-line rounded-card p-3 mb-3"
+        style={{ background: "var(--cream-warm)" }}
       >
         <p className="text-sm font-semibold">月 200 通枠を消費します</p>
         <p className="text-xs text-muted">

@@ -1,43 +1,87 @@
 /**
- * S-02 時刻表 + S-03 利用内容入力 (1 画面に統合)
- * 仕様書 §3.4 S-02 / S-03。
- *   - 時刻表の行をタップして開始・終了を選ぶ
- *   - 面数・用途・団体名等を入力して金額確認 (S-04) に進む
+ * S-02 時刻表 + S-03 利用内容入力（1 画面に統合）
+ *   - 予約種別: 貸切（コート）/ バスケフリーゴール
+ *   - 貸切: 初回1時間〜・以降30分単位で延長（土日祝は1時間単位）
+ *   - フリー: 30分単位・人数あたり（最大9名・バスケ限定）
+ *   - ハーフコート1面前提。当日予約はカウンターのみ（アプリは翌日以降）。
+ *   - 金額は向日葵株式会社 公式料金に準拠（lib/pricing）
  */
 
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { availabilityRange, listCourts } from "@/lib/gas";
 import { formatYen } from "@/lib/format";
-import type { AvailabilitySlot, Court } from "@/lib/types";
+import {
+  CHARTER_EVENING_FROM,
+  CHARTER_HOLIDAY,
+  CHARTER_WEEKDAY_EVENING,
+  CHARTER_WEEKDAY_EVENING_30,
+  CHARTER_WEEKDAY_MORNING,
+  CHARTER_WEEKDAY_MORNING_30,
+  CLOSE_HOUR,
+  FREE_MAX_HEADCOUNT,
+  OPEN_HOUR,
+  charterPrice,
+  freePer30,
+  freePrice,
+  isHolidayRate
+} from "@/lib/pricing";
+import type { AvailabilitySlot, BookingMode } from "@/lib/types";
+
+const PAD = (n: number) => String(n).padStart(2, "0");
+const SLOTS_PER_DAY = (CLOSE_HOUR - OPEN_HOUR) * 2; // 30分スロット数
+const WDAY = ["日", "月", "火", "水", "木", "金", "土"];
+
+/** 30分スロット index（0=OPEN:00）→ その日の分 */
+function slotMin(idx: number): number {
+  return OPEN_HOUR * 60 + idx * 30;
+}
+/** 分 → "HH:MM" */
+function minToHHMM(min: number): string {
+  return `${PAD(Math.floor(min / 60))}:${PAD(min % 60)}`;
+}
+/** 分(長さ) → "X時間Y分" */
+function formatDuration(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h && m) return `${h}時間${m}分`;
+  if (h) return `${h}時間`;
+  return `${m}分`;
+}
+function todayYmd(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${PAD(d.getMonth() + 1)}-${PAD(d.getDate())}`;
+}
 
 export default function ReserveDetailPage() {
   const params = useParams<{ date: string }>();
-  const search = useSearchParams();
   const router = useRouter();
   const date = params.date;
-  const courtParam = search.get("court") || "";
+  const holiday = isHolidayRate(date);
 
-  const [courts, setCourts] = useState<Court[]>([]);
-  const [courtId, setCourtId] = useState<string>(courtParam);
+  const [courtId, setCourtId] = useState<string>("");
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
-  const [startHour, setStartHour] = useState<number | null>(null);
-  const [endHour, setEndHour] = useState<number | null>(null);
-  const [sides, setSides] = useState<1 | 2>(1);
+  const [mode, setMode] = useState<BookingMode>("CHARTER");
+
+  // 30分スロット index（開始・終了は exclusive）
+  const [startSlot, setStartSlot] = useState<number | null>(null);
+  const [endSlot, setEndSlot] = useState<number | null>(null);
+
   const [purpose, setPurpose] = useState("練習");
   const [groupName, setGroupName] = useState("");
   const [repName, setRepName] = useState("");
-  const [headcount, setHeadcount] = useState<number | "">("");
+  const [headcount, setHeadcount] = useState<number>(2);
   const [note, setNote] = useState("");
+
+  const isPastOrToday = date <= todayYmd();
 
   useEffect(() => {
     listCourts().then((r) => {
-      setCourts(r.courts);
-      if (!courtId && r.courts[0]) setCourtId(r.courts[0].id);
+      if (r.courts[0]) setCourtId(r.courts[0].id);
     });
-  }, [courtId]);
+  }, []);
 
   useEffect(() => {
     if (!courtId) return;
@@ -48,172 +92,234 @@ export default function ReserveDetailPage() {
       .catch(console.error);
   }, [courtId, date]);
 
-  const court = useMemo(() => courts.find((c) => c.id === courtId), [courts, courtId]);
-
-  // 時刻表を slot からビルド
-  const rows = useMemo(() => {
-    // 9..21 の 13 行
-    const out: { hour: number; available: boolean }[] = [];
-    for (let h = 9; h < 22; h++) {
-      const slot = slots.find((s) => new Date(s.starts_at).getHours() === h);
-      out.push({ hour: h, available: Boolean(slot && slot.is_available) });
-    }
-    return out;
+  // 30分スロットの空き（index → boolean）
+  const slotAvail = useMemo(() => {
+    const arr = new Array<boolean>(SLOTS_PER_DAY).fill(false);
+    slots.forEach((s) => {
+      const d = new Date(s.starts_at);
+      const idx = (d.getHours() * 60 + d.getMinutes() - OPEN_HOUR * 60) / 30;
+      if (idx >= 0 && idx < SLOTS_PER_DAY) arr[idx] = s.is_available;
+    });
+    return arr;
   }, [slots]);
 
-  function onTapHour(h: number, available: boolean) {
-    if (!available) return;
-    if (startHour === null || endHour !== null) {
-      // 新規選択
-      setStartHour(h);
-      setEndHour(null);
+  function resetSelection() {
+    setStartSlot(null);
+    setEndSlot(null);
+  }
+
+  function onTapSlot(i: number) {
+    if (!slotAvail[i]) return;
+    if (startSlot === null || endSlot !== null) {
+      setStartSlot(i);
+      setEndSlot(null);
       return;
     }
-    if (h === startHour) {
-      setStartHour(null);
+    if (i === startSlot) {
+      setStartSlot(null);
       return;
     }
-    const s = Math.min(startHour, h);
-    const e = Math.max(startHour, h) + 1;
-    if (e - s > 4) {
-      alert("連続して予約できるのは最大 4 時間までです。");
-      return;
-    }
-    // 範囲内のすべてが空いているかチェック
+    const s = Math.min(startSlot, i);
+    const e = Math.max(startSlot, i) + 1;
+    // 空き枠の連続チェック
     for (let x = s; x < e; x++) {
-      const row = rows.find((r) => r.hour === x);
-      if (!row || !row.available) {
+      if (!slotAvail[x]) {
         alert("選択した時間帯に予約できない枠が含まれます。");
         return;
       }
     }
-    setStartHour(s);
-    setEndHour(e);
+    const segs = e - s;
+    // 種別ごとの単位チェック
+    if (mode === "CHARTER") {
+      if (segs < 2) {
+        alert("貸切は1時間以上でご指定ください。");
+        return;
+      }
+      if (holiday && segs % 2 !== 0) {
+        alert("土日祝の貸切は1時間単位でご指定ください。");
+        return;
+      }
+    }
+    setStartSlot(s);
+    setEndSlot(e);
   }
 
   const amount = useMemo(() => {
-    if (startHour === null || endHour === null || !court) return 0;
-    return estimatePrice(date, court.court_type, startHour, endHour, sides);
-  }, [startHour, endHour, court, date, sides]);
+    if (startSlot === null || endSlot === null) return 0;
+    if (mode === "CHARTER") return charterPrice(date, slotMin(startSlot), slotMin(endSlot));
+    return freePrice(date, endSlot - startSlot, headcount);
+  }, [mode, startSlot, endSlot, headcount, date]);
 
-  const canProceed =
-    startHour !== null &&
-    endHour !== null &&
-    Boolean(court) &&
-    groupName.trim().length > 0;
+  const hasSelection = startSlot !== null && endSlot !== null;
+  const canProceed = hasSelection && groupName.trim().length > 0 && !isPastOrToday;
 
   function handleProceed() {
-    if (!canProceed || !court || startHour === null || endHour === null) return;
+    if (!canProceed || !courtId || startSlot === null || endSlot === null) return;
+    const starts = `${date}T${minToHHMM(slotMin(startSlot))}:00+09:00`;
+    const ends = `${date}T${minToHHMM(slotMin(endSlot))}:00+09:00`;
     const query = new URLSearchParams({
-      court: court.id,
-      starts: `${date}T${String(startHour).padStart(2, "0")}:00:00+09:00`,
-      ends: `${date}T${String(endHour).padStart(2, "0")}:00:00+09:00`,
-      sides: String(sides),
-      purpose,
+      court: courtId,
+      mode,
+      starts,
+      ends,
+      purpose: mode === "FREE" ? "バスケットボール（フリー）" : purpose,
       group: groupName,
       rep: repName,
-      head: headcount === "" ? "" : String(headcount),
+      head: mode === "FREE" ? String(headcount) : "",
       note
     });
     router.push(`/reserve/${date}/confirm?${query.toString()}`);
   }
 
+  const dow = WDAY[new Date(`${date}T00:00:00+09:00`).getDay()];
+
+  if (isPastOrToday) {
+    return (
+      <>
+        <header className="app-header">
+          <button type="button" className="back" onClick={() => router.back()} aria-label="戻る">
+            ←
+          </button>
+          {date}
+        </header>
+        <main className="app-main">
+          <div className="notice">
+            <p className="font-semibold mb-1">当日・過去日のご予約はできません</p>
+            <p className="text-sm">
+              当日のご予約はカウンターのみ（要相談）です。アプリでは翌日以降の枠をご予約いただけます。
+            </p>
+          </div>
+          <button type="button" className="btn btn-ghost w-full" onClick={() => router.push("/")}>
+            カレンダーに戻る
+          </button>
+        </main>
+      </>
+    );
+  }
+
   return (
     <>
       <header className="app-header">
-        <button
-          type="button"
-          className="back"
-          onClick={() => router.back()}
-          aria-label="戻る"
-        >
+        <button type="button" className="back" onClick={() => router.back()} aria-label="戻る">
           ←
         </button>
-        {date}
+        {date}（{dow}）
       </header>
       <main className="app-main">
-        {/* コート切替 */}
-        <div className="flex gap-2 mb-3 overflow-x-auto">
-          {courts.map((c) => (
-            <button
-              key={c.id}
-              type="button"
-              className={`btn ${c.id === courtId ? "btn-primary" : "btn-ghost"}`}
-              onClick={() => {
-                setCourtId(c.id);
-                setStartHour(null);
-                setEndHour(null);
-              }}
-            >
-              {c.name}
-            </button>
-          ))}
+        {/* 予約種別の切替 */}
+        <div className="seg mb-3" role="tablist" aria-label="予約種別">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "CHARTER"}
+            className={`seg-btn ${mode === "CHARTER" ? "active" : ""}`}
+            onClick={() => {
+              setMode("CHARTER");
+              resetSelection();
+            }}
+          >
+            貸切（コート）
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "FREE"}
+            className={`seg-btn ${mode === "FREE" ? "active" : ""}`}
+            onClick={() => {
+              setMode("FREE");
+              resetSelection();
+            }}
+          >
+            バスケフリーゴール
+          </button>
         </div>
 
-        {/* 時刻表 */}
-        <div className="border border-[#e5e7eb] rounded-[8px] overflow-hidden mb-4">
-          {rows.map((r) => {
+        {/* 料金の目安 */}
+        <div className="price-hint mb-2">
+          {mode === "CHARTER" ? (
+            holiday ? (
+              <>土日祝：{formatYen(CHARTER_HOLIDAY)} / 1時間（9:00〜20:00・1時間単位）</>
+            ) : (
+              <>
+                平日 朝(〜{CHARTER_EVENING_FROM}時) {formatYen(CHARTER_WEEKDAY_MORNING)}/1h（延長30分{" "}
+                {formatYen(CHARTER_WEEKDAY_MORNING_30)}）／夕({CHARTER_EVENING_FROM}時〜){" "}
+                {formatYen(CHARTER_WEEKDAY_EVENING)}/1h（延長30分 {formatYen(CHARTER_WEEKDAY_EVENING_30)}）
+              </>
+            )
+          ) : (
+            <>
+              {holiday ? "土日祝" : "平日"}：{formatYen(freePer30(date))} / 30分 / 人（最大
+              {FREE_MAX_HEADCOUNT}名・バスケットボール限定）
+            </>
+          )}
+        </div>
+        <p className="text-xs text-muted mb-3">
+          {mode === "CHARTER"
+            ? holiday
+              ? "土日祝の貸切は1時間単位です。"
+              : "初回1時間から、以降は30分単位で延長できます。"
+            : "30分単位でご指定いただけます。"}
+        </p>
+
+        {/* 時刻表（30分） */}
+        <div className="timetable mb-4">
+          {Array.from({ length: SLOTS_PER_DAY }, (_, i) => i).map((i) => {
+            const available = slotAvail[i];
             const inRange =
-              startHour !== null &&
-              (endHour === null
-                ? r.hour === startHour
-                : r.hour >= startHour && r.hour < endHour);
+              startSlot !== null &&
+              (endSlot === null ? i === startSlot : i >= startSlot && i < endSlot);
             return (
               <button
-                key={r.hour}
+                key={i}
                 type="button"
-                className="w-full text-left px-3 flex justify-between items-center"
-                style={{
-                  height: 44,
-                  background: inRange ? "#fee2e2" : "#fff",
-                  borderBottom: "1px solid #e5e7eb",
-                  color: r.available ? "#1f2937" : "#cbd5e1",
-                  cursor: r.available ? "pointer" : "not-allowed"
-                }}
-                onClick={() => onTapHour(r.hour, r.available)}
+                className={`tt-row ${inRange ? "sel" : ""}`}
+                onClick={() => onTapSlot(i)}
                 aria-pressed={inRange}
-                disabled={!r.available}
+                disabled={!available}
               >
                 <span>
-                  {String(r.hour).padStart(2, "0")}:00〜
-                  {String(r.hour + 1).padStart(2, "0")}:00
+                  {minToHHMM(slotMin(i))}〜{minToHHMM(slotMin(i + 1))}
                 </span>
-                <span>{r.available ? (inRange ? "✓" : "◎") : "×"}</span>
+                <span>{available ? (inRange ? "✓" : "◎") : "×"}</span>
               </button>
             );
           })}
         </div>
 
-        {startHour !== null && endHour !== null && (
+        {hasSelection && (
           <p className="mb-3 text-sm">
-            選択: {String(startHour).padStart(2, "0")}:00〜
-            {String(endHour).padStart(2, "0")}:00（{endHour - startHour} 時間）
+            選択: {minToHHMM(slotMin(startSlot as number))}〜{minToHHMM(slotMin(endSlot as number))}（
+            {formatDuration((slotMin(endSlot as number) - slotMin(startSlot as number)))}）
           </p>
         )}
 
         {/* 利用内容入力 */}
+        {mode === "CHARTER" ? (
+          <label className="field">
+            用途<span className="req">*</span>
+            <select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
+              <option>練習</option>
+              <option>試合</option>
+              <option>部活動</option>
+              <option>個人練習</option>
+              <option>その他</option>
+            </select>
+          </label>
+        ) : (
+          <label className="field">
+            人数<span className="req">*</span>
+            <select value={headcount} onChange={(e) => setHeadcount(Number(e.target.value))}>
+              {Array.from({ length: FREE_MAX_HEADCOUNT }, (_, k) => k + 1).map((n) => (
+                <option key={n} value={n}>
+                  {n} 名
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label className="field">
-          面数<span className="req">*</span>
-          <select
-            value={sides}
-            onChange={(e) => setSides(Number(e.target.value) as 1 | 2)}
-          >
-            <option value={1}>1 面</option>
-            {court && court.sides_max >= 2 && <option value={2}>2 面</option>}
-          </select>
-        </label>
-        <label className="field">
-          用途<span className="req">*</span>
-          <select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
-            <option>練習</option>
-            <option>試合</option>
-            <option>部活動</option>
-            <option>個人練習</option>
-            <option>その他</option>
-          </select>
-        </label>
-        <label className="field">
-          団体名<span className="req">*</span>
+          {mode === "FREE" ? "代表者名・グループ名" : "団体名"}
+          <span className="req">*</span>
           <input
             type="text"
             value={groupName}
@@ -232,31 +338,11 @@ export default function ReserveDetailPage() {
           />
         </label>
         <label className="field">
-          人数
-          <input
-            type="number"
-            inputMode="numeric"
-            value={headcount}
-            min={1}
-            max={99}
-            onChange={(e) =>
-              setHeadcount(e.target.value === "" ? "" : Number(e.target.value))
-            }
-          />
-        </label>
-        <label className="field">
           備考
-          <textarea
-            rows={3}
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            maxLength={200}
-          />
+          <textarea rows={3} value={note} onChange={(e) => setNote(e.target.value)} maxLength={200} />
         </label>
 
-        {amount > 0 && (
-          <p className="mb-3 font-semibold">金額（目安）: {formatYen(amount)}</p>
-        )}
+        {amount > 0 && <p className="mb-3 font-semibold">金額（目安）: {formatYen(amount)}</p>}
 
         <button
           type="button"
@@ -271,26 +357,4 @@ export default function ReserveDetailPage() {
   );
 }
 
-/** クライアント側の料金見積 (サーバーと同ロジック §8.1) */
-function estimatePrice(
-  dateYmd: string,
-  courtType: Court["court_type"],
-  startHour: number,
-  endHour: number,
-  sides: number
-) {
-  const d = new Date(`${dateYmd}T00:00:00+09:00`);
-  const dow = d.getDay();
-  let sum = 0;
-  for (let h = startHour; h < endHour; h++) {
-    let base: number;
-    if (dow === 0 || dow === 6) base = 3000;
-    else if (h >= 18) base = 2400;
-    else base = 2000;
-    if (courtType === "HALF") base = Math.round(base * 0.82);
-    sum += base;
-  }
-  return sum * Math.max(1, sides);
-}
-
-export const runtime = 'edge';
+export const runtime = "edge";

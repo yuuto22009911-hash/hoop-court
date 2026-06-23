@@ -14,6 +14,6 @@ export async function renderReservationQr(
   await QRCode.toCanvas(canvas, reservationId, {
     width: 240,
     margin: 1,
-    color: { dark: "#1f2937", light: "#ffffff" }
+    color: { dark: "#2F2418", light: "#ffffff" }
   });
 }

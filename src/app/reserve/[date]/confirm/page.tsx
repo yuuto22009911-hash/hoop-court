@@ -1,34 +1,34 @@
 /**
  * S-04 予約内容確認 + S-05 予約完了
- * 仕様書 §3.4 S-04 / S-05。
  * 確認内容を再表示し、予約確定ボタンで reservations.create を叩く。
  */
 
 "use client";
 
 import { useMemo, useState } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createReservation } from "@/lib/gas";
 import { getIdToken } from "@/lib/auth";
 import { formatRange, formatYen } from "@/lib/format";
+import type { BookingMode } from "@/lib/types";
 
 export default function ConfirmPage() {
-  const params = useParams<{ date: string }>();
   const search = useSearchParams();
   const router = useRouter();
+  const mode = (search.get("mode") as BookingMode) || "CHARTER";
   const payload = useMemo(
     () => ({
       court_id: search.get("court") || "",
+      mode,
       starts_at: search.get("starts") || "",
       ends_at: search.get("ends") || "",
-      sides: Number(search.get("sides") || 1),
       purpose: search.get("purpose") || "",
       group_name: search.get("group") || "",
       rep_name: search.get("rep") || "",
       headcount: search.get("head") ? Number(search.get("head")) : undefined,
       note: search.get("note") || ""
     }),
-    [search]
+    [search, mode]
   );
 
   const [agreed, setAgreed] = useState(false);
@@ -53,25 +53,19 @@ export default function ConfirmPage() {
     }
   }
 
+  const modeLabel = mode === "FREE" ? "バスケフリーゴール" : "貸切（コート）";
+
   if (done) {
     return (
       <>
         <header className="app-header">予約完了</header>
         <main className="app-main">
-          <div
-            className="border border-[#e5e7eb] rounded-[8px] p-4 mb-4"
-            style={{ background: "#ecfdf5" }}
-          >
-            <h2 className="font-semibold mb-2" style={{ color: "#047857" }}>
-              ご予約が確定しました
-            </h2>
+          <div className="notice notice-success">
+            <h2 className="font-semibold mb-2">ご予約が確定しました</h2>
             <p className="text-sm mb-1">予約番号: {done.display_number}</p>
-            <p className="text-sm mb-1">
-              日時: {formatRange(payload.starts_at, payload.ends_at)}
-            </p>
-            <p className="text-sm">
-              金額: {formatYen(done.amount)}（当日現地払い）
-            </p>
+            <p className="text-sm mb-1">種別: {modeLabel}</p>
+            <p className="text-sm mb-1">日時: {formatRange(payload.starts_at, payload.ends_at)}</p>
+            <p className="text-sm">金額: {formatYen(done.amount)}（当日現地払い）</p>
           </div>
           <button
             type="button"
@@ -80,11 +74,7 @@ export default function ConfirmPage() {
           >
             マイページで確認する
           </button>
-          <button
-            type="button"
-            className="btn btn-ghost w-full"
-            onClick={() => router.push("/")}
-          >
+          <button type="button" className="btn btn-ghost w-full" onClick={() => router.push("/")}>
             予約トップに戻る
           </button>
         </main>
@@ -95,35 +85,38 @@ export default function ConfirmPage() {
   return (
     <>
       <header className="app-header">
-        <button
-          type="button"
-          className="back"
-          onClick={() => router.back()}
-          aria-label="戻る"
-        >
+        <button type="button" className="back" onClick={() => router.back()} aria-label="戻る">
           ←
         </button>
         ご予約内容の確認
       </header>
       <main className="app-main">
         <dl className="text-sm mb-4">
+          <Row label="種別" value={modeLabel} />
           <Row label="日時" value={formatRange(payload.starts_at, payload.ends_at)} />
-          <Row label="面数" value={`${payload.sides} 面`} />
+          {mode === "FREE" && payload.headcount ? (
+            <Row label="人数" value={`${payload.headcount} 名`} />
+          ) : null}
           <Row label="用途" value={payload.purpose} />
-          <Row label="団体名" value={payload.group_name} />
+          <Row label={mode === "FREE" ? "代表者名・グループ名" : "団体名"} value={payload.group_name} />
           {payload.rep_name && <Row label="代表者" value={payload.rep_name} />}
-          {payload.headcount && <Row label="人数" value={`${payload.headcount} 名`} />}
           {payload.note && <Row label="備考" value={payload.note} />}
         </dl>
 
-        <div
-          className="border border-[#e5e7eb] rounded-[8px] p-3 mb-4"
-          style={{ background: "#fff7ed" }}
-        >
+        <div className="notice mb-4">
           <p className="text-sm mb-1 font-semibold">当日現地でお支払いください</p>
           <p className="text-xs text-muted">
-            現金 / PayPay / 口座振込 に対応しています。
+            お支払いは PayPay（当日カウンターは現金も可）に対応しています。
           </p>
+        </div>
+
+        <div className="notice mb-4">
+          <p className="text-sm font-semibold mb-1">ご利用にあたって</p>
+          <ul className="text-xs text-muted list-disc pl-4 space-y-0.5">
+            <li>ご予約時間を過ぎると、30分ごとの追加料金が発生します。</li>
+            <li>コートはご予約を最優先でご案内します。</li>
+            <li>当日のご予約・変更はカウンターのみ（要相談）です。</li>
+          </ul>
         </div>
 
         <label className="flex items-start gap-2 mb-3">
@@ -134,8 +127,7 @@ export default function ConfirmPage() {
             className="mt-1"
           />
           <span className="text-sm">
-            キャンセル規定（開始 72 時間未満は 100%、72 時間以上は 50%）と
-            利用規約に同意します
+            キャンセル規定（当面はいつでも無料です）と利用規約に同意します
           </span>
         </label>
 
@@ -160,11 +152,11 @@ export default function ConfirmPage() {
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex py-2 border-b border-[#e5e7eb]">
-      <dt className="w-20 text-muted">{label}</dt>
+    <div className="flex py-2 border-b border-line">
+      <dt className="w-24 text-muted">{label}</dt>
       <dd className="flex-1">{value}</dd>
     </div>
   );
 }
 
-export const runtime = 'edge';
+export const runtime = "edge";

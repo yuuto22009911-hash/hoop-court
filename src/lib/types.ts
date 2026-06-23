@@ -8,6 +8,9 @@ export type PaymentStatus = "UNPAID" | "PAID" | "REFUNDED";
 export type CourtType = "FULL" | "HALF" | "THREE_X_THREE";
 export type SlotStatus = "OPEN" | "CLOSED" | "BLOCKED";
 
+/** 予約種別: CHARTER=貸切（コート）/ FREE=バスケフリーゴール */
+export type BookingMode = "CHARTER" | "FREE";
+
 export interface Facility {
   id: string;
   name: string;
@@ -39,6 +42,7 @@ export interface Reservation {
   display_number: string;
   user_id: string;
   court_id: string;
+  mode: BookingMode;
   starts_at: string;
   ends_at: string;
   sides: number;
@@ -77,12 +81,15 @@ export type ApiResponse<T> =
 /** reservations.create の payload */
 export interface CreateReservationPayload {
   court_id: string;
+  mode: BookingMode;
   starts_at: string;
   ends_at: string;
-  sides: number;
+  /** 貸切は常に1（ハーフ1面）。後方互換のため任意。 */
+  sides?: number;
   purpose: string;
   group_name: string;
   rep_name?: string;
+  /** フリーは利用人数（必須）。貸切は任意。 */
   headcount?: number;
   note?: string;
 }

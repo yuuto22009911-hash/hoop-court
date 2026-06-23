@@ -84,7 +84,7 @@ export default function AdminReservations() {
           onKeyDown={(e) => {
             if (e.key === "Enter") load();
           }}
-          className="flex-1 border border-[#e5e7eb] rounded-[6px] px-2"
+          className="flex-1 border border-line rounded-btn px-2"
           style={{ height: 44 }}
         />
       </div>
@@ -96,7 +96,7 @@ export default function AdminReservations() {
       {list?.map((r) => (
         <article
           key={r.id}
-          className="border border-[#e5e7eb] rounded-[8px] p-3 mb-3"
+          className="border border-line rounded-card p-3 mb-3"
         >
           <div className="flex justify-between mb-1">
             <span className="font-semibold">{r.display_number}</span>
@@ -104,7 +104,8 @@ export default function AdminReservations() {
           </div>
           <div className="text-sm">{formatRange(r.starts_at, r.ends_at)}</div>
           <div className="text-sm text-muted">
-            {r.group_name} / {r.purpose} / {r.sides}面
+            {r.group_name} / {r.purpose} /{" "}
+            {r.mode === "FREE" ? `フリー${r.headcount ? ` ${r.headcount}名` : ""}` : "貸切"}
           </div>
           <div className="text-sm mt-1">
             {formatYen(Number(r.total_amount))}（{r.payment_status}）
