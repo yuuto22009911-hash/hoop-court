@@ -243,9 +243,7 @@ export default function ReserveDetailPage() {
 
 // ローカルの LiffGate ラッパー（import 元に合わせる）
 function LiffGateWrapper({ children }: { children: React.ReactNode }) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { default: LiffGate } = require("@/components/LiffGate");
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { default: TabBar } = require("@/components/TabBar");
     return (
           <LiffGate>
