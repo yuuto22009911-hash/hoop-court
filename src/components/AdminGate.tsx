@@ -1,53 +1,74 @@
 /**
  * AdminGate — 管理画面の入口コンポーネント
- * LIFF 初期化 + admins シート認可の簡易確認。
- * 最終認可は GAS 側の requireAdmin が行うため、ここは UI 制御のみ。
+ *
+ * ID/パスワードのセッショントークン（localStorage）で認可する。LINE は不要。
+ *   - /admin/login … クロム無しで素のまま表示（ログインフォーム自身）
+ *   - それ以外    … セッションを検証し、未ログインなら /admin/login へ誘導。
+ *                   認可済みならヘッダー＋タブバーを付けて children を表示。
+ * 最終認可は GAS 側 requireAdmin_ が行うため、ここは UI 制御。
  */
 
 "use client";
 
 import { useEffect, useState } from "react";
-import { initLiff, getIdToken } from "@/lib/auth";
-import { adminListReservations } from "@/lib/gas";
-
-type State =
-  | { kind: "loading" }
-  | { kind: "denied"; reason: string }
-  | { kind: "ready" };
+import { usePathname, useRouter } from "next/navigation";
+import AdminTabBar from "@/components/AdminTabBar";
+import { adminSignOut, verifyAdminSession } from "@/lib/adminAuth";
 
 export default function AdminGate({ children }: { children: React.ReactNode }) {
-  const [state, setState] = useState<State>({ kind: "loading" });
+  const pathname = usePathname();
+  const router = useRouter();
+  const [state, setState] = useState<"loading" | "ready">("loading");
+  const isLoginPage = pathname === "/admin/login";
 
   useEffect(() => {
+    if (isLoginPage) return;
+    let alive = true;
     (async () => {
-      try {
-        await initLiff();
-        // admin 権限のある呼び出しを 1 本試し、通れば OK
-        await adminListReservations(getIdToken(), {
-          from: new Date().toISOString(),
-          to: new Date(Date.now() + 3600_000).toISOString()
-        });
-        setState({ kind: "ready" });
-      } catch (err) {
-        const reason = err instanceof Error ? err.message : String(err);
-        setState({ kind: "denied", reason });
-      }
+      const ok = await verifyAdminSession();
+      if (!alive) return;
+      if (ok) setState("ready");
+      else router.replace("/admin/login");
     })();
-  }, []);
+    return () => {
+      alive = false;
+    };
+  }, [isLoginPage, pathname, router]);
 
-  if (state.kind === "loading") {
-    return <p className="p-4 text-muted">読み込み中...</p>;
-  }
-  if (state.kind === "denied") {
+  // ログイン画面はクロム無しで素のまま表示（ヘッダー／タブバーを付けない）
+  if (isLoginPage) return <>{children}</>;
+
+  if (state === "loading") {
     return (
-      <div className="p-4">
-        <h1 className="font-semibold mb-2">アクセスできません</h1>
-        <p className="text-sm text-muted">
-          この画面は管理者アカウントでのみ利用可能です。
-        </p>
-        <p className="text-xs text-muted mt-2">詳細: {state.reason}</p>
-      </div>
+      <>
+        <header className="app-header">向日葵株式会社 管理</header>
+        <main className="app-main">
+          <p className="text-muted">読み込み中...</p>
+        </main>
+      </>
     );
   }
-  return <>{children}</>;
+
+  async function handleLogout() {
+    await adminSignOut();
+    router.replace("/admin/login");
+  }
+
+  return (
+    <>
+      <header className="app-header">
+        <span>向日葵株式会社 管理</span>
+        <button
+          type="button"
+          className="back"
+          style={{ marginLeft: "auto", marginRight: 0, fontSize: 13 }}
+          onClick={handleLogout}
+        >
+          ログアウト
+        </button>
+      </header>
+      <main className="app-main">{children}</main>
+      <AdminTabBar />
+    </>
+  );
 }

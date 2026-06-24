@@ -110,6 +110,28 @@ export async function cancelReservation(
   return post("reservations.cancel", { reservation_id }, idToken);
 }
 
+// ============ Admin 認証 (ID/パスワード) ============
+
+/** 管理ログイン。成功でセッショントークンを返す（LINE 不要）。 */
+export async function adminLogin(
+  username: string,
+  password: string
+): Promise<{ token: string; username: string; expires_in: number }> {
+  return post("admin.login", { username, password });
+}
+
+/** セッショントークンの有効性確認（AdminGate 用）。 */
+export async function adminSession(
+  token: string
+): Promise<{ ok: true; username: string; via: string }> {
+  return post("admin.session", undefined, token);
+}
+
+/** 管理ログアウト（サーバ側セッション破棄）。 */
+export async function adminLogout(token: string): Promise<{ ok: true }> {
+  return post("admin.logout", undefined, token);
+}
+
 // ============ Admin API ============
 
 export async function adminListReservations(
@@ -394,6 +416,12 @@ function demoExec(action: string, p: Record<string, unknown>) {
     }
 
     // 管理系 action は DEMO ではあらゆる呼び出しを許可 (ログインしている体で振る舞う)
+    case "admin.login":
+      return { token: "demo-admin-token", username: String(p.username || "admin"), expires_in: 21600 };
+    case "admin.session":
+      return { ok: true, username: "demo-admin", via: "demo" };
+    case "admin.logout":
+      return { ok: true };
     case "admin.reservations.list": {
       return { reservations: stored };
     }

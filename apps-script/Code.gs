@@ -16,7 +16,10 @@
  *        LINE_LOGIN_CHANNEL_ID … LINE ログインチャネルの Channel ID（IDトークン検証用・必須）
  *        LINE_MESSAGING_TOKEN  … Messaging API のチャネルアクセストークン（一斉配信用・任意）
  *        ADMIN_USER_IDS        … 管理者の LINE userId をカンマ区切り（任意。Admins シートでも可）
- *   4. デプロイ → 新しいデプロイ → 種類: ウェブアプリ / 実行: 自分 / アクセス: 全員
+ *   4. 管理画面に ID/パスワードで入れるようにする（LINE不要・任意）:
+ *        Script Properties に ADMIN_LOGIN_USER / ADMIN_LOGIN_PASSWORD を設定 → 関数 setAdminLogin() を実行。
+ *        （AdminAuth シートにハッシュ保存し、平文プロパティは自動削除。/admin/login から利用）
+ *   5. デプロイ → 新しいデプロイ → 種類: ウェブアプリ / 実行: 自分 / アクセス: 全員
  *      → /exec URL を NEXT_PUBLIC_GAS_ENDPOINT に設定。
  */
 
@@ -117,6 +120,9 @@ function handle_(action, p, idToken) {
     case "reservations.listMine": return reservationsListMine_(idToken);
     case "reservations.cancel": return reservationsCancel_(idToken, p);
 
+    case "admin.login": return adminLogin_(p);
+    case "admin.logout": return adminLogout_(idToken);
+    case "admin.session": return adminSession_(idToken);
     case "admin.reservations.list": return adminList_(idToken, p);
     case "admin.reservations.markPaid": return adminMarkPaid_(idToken, p);
     case "admin.reservations.markNoShow": return adminMarkNoShow_(idToken, p);
@@ -146,12 +152,93 @@ function verifyLineUser_(idToken) {
   return obj; // { sub(userId), name, picture, email? }
 }
 function requireAdmin_(idToken) {
+  // 1) ID/パスワードでログインした管理セッショントークン（/admin/login 経由・LINE不要）
+  var sessUser = adminSessionGet_(idToken);
+  if (sessUser) return { sub: "admin:" + sessUser, name: sessUser, admin: true, via: "password" };
+  // 2) LINE ログイン + userId 許可リスト（ADMIN_USER_IDS / Admins シート）
   var line = verifyLineUser_(idToken);
   var ids = (props_("ADMIN_USER_IDS") || "").split(",").map(function (s) { return s.trim(); }).filter(String);
   var fromSheet = readTable_("Admins").map(function (r) { return String(r.line_user_id); });
   var allowed = ids.concat(fromSheet);
   if (allowed.indexOf(line.sub) < 0) throw fail_("管理者権限がありません。", "FORBIDDEN");
+  line.via = "line";
   return line;
+}
+
+// ====================== 管理ログイン（ID/パスワード） ======================
+// LINE を使わず PC ブラウザ等から管理画面に入るためのパスワード認証。
+// 認証情報は AdminAuth シートに「ソルト＋反復SHA-256ハッシュ」で保存し、平文は保持しない。
+// ログイン成功でランダムなセッショントークンを発行し、CacheService に保持（6時間・アクセスで延長）。
+var ADMIN_HASH_ITERATIONS = 1000;
+var ADMIN_SESSION_TTL_SEC = 21600; // CacheService の上限 = 6時間
+
+function bytesToHex_(bytes) {
+  var s = "";
+  for (var i = 0; i < bytes.length; i++) {
+    var v = bytes[i] & 0xFF;
+    s += (v < 16 ? "0" : "") + v.toString(16);
+  }
+  return s;
+}
+/** salt(hex) + ":" + password を反復 SHA-256 でハッシュ化（hex を返す）。 */
+function hashPassword_(password, saltHex, iterations) {
+  var n = iterations || ADMIN_HASH_ITERATIONS;
+  var data = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256, String(saltHex) + ":" + String(password), Utilities.Charset.UTF_8
+  );
+  for (var i = 1; i < n; i++) {
+    data = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, data);
+  }
+  return bytesToHex_(data);
+}
+function randomSaltHex_() {
+  return (uuid_() + uuid_()).replace(/-/g, "").slice(0, 32); // 16 byte 分
+}
+function adminFindCred_(username) {
+  var rows = readTable_("AdminAuth");
+  for (var i = 0; i < rows.length; i++) {
+    if (String(rows[i].username) === username) return rows[i];
+  }
+  return null;
+}
+function adminSessionPut_(username) {
+  var token = (uuid_() + uuid_()).replace(/-/g, ""); // 64 hex
+  CacheService.getScriptCache().put("adm:" + token, String(username), ADMIN_SESSION_TTL_SEC);
+  return token;
+}
+function adminSessionGet_(token) {
+  // セッショントークン形式（64桁hex）のみ参照。LINE の長い JWT はキー長上限に当たるため弾く。
+  if (!token || typeof token !== "string" || !/^[0-9a-f]{64}$/.test(token)) return null;
+  var cache = CacheService.getScriptCache();
+  var username = cache.get("adm:" + token);
+  if (username) cache.put("adm:" + token, username, ADMIN_SESSION_TTL_SEC); // アクセスで延長（スライディング）
+  return username;
+}
+function adminSessionRemove_(token) {
+  if (token && typeof token === "string" && /^[0-9a-f]{64}$/.test(token)) {
+    CacheService.getScriptCache().remove("adm:" + token);
+  }
+}
+function adminLogin_(p) {
+  var username = String((p && p.username) || "").trim();
+  var password = String((p && p.password) || "");
+  if (!username || !password) throw fail_("IDとパスワードを入力してください。", "VALIDATION");
+  var cred = adminFindCred_(username);
+  // ユーザー有無でタイミング差が出ないよう、未登録でもハッシュ計算は実施する。
+  var saltHex = cred ? String(cred.salt) : "00000000000000000000000000000000";
+  var iter = cred ? (Number(cred.iterations) || ADMIN_HASH_ITERATIONS) : ADMIN_HASH_ITERATIONS;
+  var calc = hashPassword_(password, saltHex, iter);
+  if (!cred || calc !== String(cred.hash)) throw fail_("IDまたはパスワードが違います。", "AUTH");
+  var token = adminSessionPut_(username);
+  return { token: token, username: username, expires_in: ADMIN_SESSION_TTL_SEC };
+}
+function adminLogout_(idToken) {
+  adminSessionRemove_(idToken);
+  return { ok: true };
+}
+function adminSession_(idToken) {
+  var a = requireAdmin_(idToken);
+  return { ok: true, username: String(a.name || ""), via: a.via || "line" };
 }
 
 // ====================== スプレッドシート I/O ======================
@@ -543,7 +630,8 @@ function setup() {
       "purpose", "group_name", "rep_name", "headcount", "note", "status", "total_amount", "payment_status",
       "paid_at", "checked_in_at", "created_at", "updated_at", "canceled_at"],
     Slots: ["court_id", "starts_at", "ends_at", "status"],
-    Admins: ["line_user_id", "note"]
+    Admins: ["line_user_id", "note"],
+    AdminAuth: ["username", "salt", "hash", "iterations", "note", "created_at", "updated_at"]
   };
   Object.keys(schema).forEach(function (name) {
     var sh = book.getSheetByName(name) || book.insertSheet(name);
@@ -561,4 +649,52 @@ function setup() {
   var def = book.getSheetByName("シート1") || book.getSheetByName("Sheet1");
   if (def && book.getSheets().length > 1) book.deleteSheet(def);
   return "setup done";
+}
+
+function ensureAdminAuthSheet_() {
+  var book = ss_();
+  var sh = book.getSheetByName("AdminAuth");
+  if (!sh) sh = book.insertSheet("AdminAuth");
+  if (sh.getLastRow() === 0) {
+    sh.appendRow(["username", "salt", "hash", "iterations", "note", "created_at", "updated_at"]);
+  }
+}
+
+/**
+ * 管理ログイン（ID/パスワード）を登録・更新する。エディタから一度だけ実行する。
+ * 手順:
+ *   1. プロジェクトの設定 → スクリプト プロパティに以下を追加
+ *        ADMIN_LOGIN_USER     … 管理ログインのユーザーID（例: himawari-admin）
+ *        ADMIN_LOGIN_PASSWORD … 管理ログインのパスワード（強固なものを推奨）
+ *   2. この setAdminLogin を実行
+ *   → AdminAuth シートにソルト＋ハッシュで保存し、平文パスワードのプロパティは自動削除する。
+ * パスワードを変えるときも、同じ2手順を再実行すればよい（同一 username は上書き）。
+ */
+function setAdminLogin() {
+  var props = PropertiesService.getScriptProperties();
+  var username = String(props.getProperty("ADMIN_LOGIN_USER") || "").trim();
+  var password = String(props.getProperty("ADMIN_LOGIN_PASSWORD") || "");
+  if (!username || !password) {
+    throw new Error(
+      "スクリプト プロパティに ADMIN_LOGIN_USER と ADMIN_LOGIN_PASSWORD を設定してから実行してください。"
+    );
+  }
+  ensureAdminAuthSheet_();
+  var saltHex = randomSaltHex_();
+  var hash = hashPassword_(password, saltHex, ADMIN_HASH_ITERATIONS);
+  var now = nowIso_();
+  var cred = adminFindCred_(username);
+  if (cred) {
+    updateRow_("AdminAuth", cred._row, {
+      salt: saltHex, hash: hash, iterations: ADMIN_HASH_ITERATIONS, updated_at: now
+    });
+  } else {
+    appendRow_("AdminAuth", {
+      username: username, salt: saltHex, hash: hash, iterations: ADMIN_HASH_ITERATIONS,
+      note: "", created_at: now, updated_at: now
+    });
+  }
+  // 平文パスワードは保持しない（ハッシュのみ残す）
+  props.deleteProperty("ADMIN_LOGIN_PASSWORD");
+  return "管理ログインを設定しました: " + username;
 }

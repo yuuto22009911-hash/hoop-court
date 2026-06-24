@@ -93,6 +93,18 @@ npm run build
 `src/lib/gas.ts` の action 契約に準拠し、料金は `src/lib/pricing.ts` と厳密一致。
 デプロイ手順は [`apps-script/README.md`](apps-script/README.md) を参照。
 
+## 管理画面 (`/admin`)
+
+ダッシュボード / 予約一覧 / QRチェックイン / 枠カレンダー / 一斉配信。認証は2系統:
+
+- **ID/パスワード**（推奨・LINE不要）: `/admin/login` でログイン。PC のブラウザからも使える。
+  セットアップは GAS の `setAdminLogin()`（[`apps-script/README.md`](apps-script/README.md) の「管理ログイン」を参照）。
+- **LINEログイン**: 管理者の LINE userId を `ADMIN_USER_IDS` か `Admins` シートに登録すると、
+  LINE で `/admin` を開いて入れる。
+
+セッショントークンは `localStorage`（`hc_admin_session`）に保持し、各 admin API に付与する。
+最終認可は GAS 側 `requireAdmin_` が行う。DEMO モードでは常にログイン済みとして表示する。
+
 ## デプロイ (仕様書 §11.6)
 
 Cloudflare Pages + `@cloudflare/next-on-pages` を使う。デプロイ方法は2通り。

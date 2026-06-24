@@ -9,7 +9,7 @@
 
 import { useState } from "react";
 import { adminBroadcast } from "@/lib/gas";
-import { getIdToken } from "@/lib/auth";
+import { getAdminToken } from "@/lib/adminAuth";
 
 export default function AdminBroadcast() {
   const [text, setText] = useState<string>("");
@@ -22,7 +22,7 @@ export default function AdminBroadcast() {
     setBusy(true);
     setError(null);
     try {
-      await adminBroadcast(getIdToken(), text);
+      await adminBroadcast(getAdminToken(), text);
       setSent(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));

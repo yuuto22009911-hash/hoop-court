@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from "react";
 import { adminSlotsBulk, listCourts } from "@/lib/gas";
-import { getIdToken } from "@/lib/auth";
+import { getAdminToken } from "@/lib/adminAuth";
 import type { Court } from "@/lib/types";
 
 export default function AdminSlots() {
@@ -32,7 +32,7 @@ export default function AdminSlots() {
     setResult(null);
     try {
       const r = await adminSlotsBulk(
-        getIdToken(),
+        getAdminToken(),
         courtId,
         new Date(from).toISOString(),
         new Date(to).toISOString(),

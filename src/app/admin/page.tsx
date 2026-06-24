@@ -12,7 +12,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { adminListReservations, adminSalesSummary } from "@/lib/gas";
-import { getIdToken } from "@/lib/auth";
+import { getAdminToken } from "@/lib/adminAuth";
 import { formatYen } from "@/lib/format";
 import type { Reservation } from "@/lib/types";
 
@@ -23,7 +23,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     (async () => {
       try {
-        const idToken = getIdToken();
+        const idToken = getAdminToken();
         const dayStart = new Date();
         dayStart.setHours(0, 0, 0, 0);
         const dayEnd = new Date(dayStart);
