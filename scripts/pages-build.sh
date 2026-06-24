@@ -17,6 +17,8 @@ if [ ! -f .vercel/project.json ]; then
   printf '{"projectId":"_","orgId":"_","settings":{}}' > .vercel/project.json
 fi
 
-vercel build
+# Vercel CLI 45.x 以降は next-on-pages で root `/` が "Not Found" になる既知バグがある
+# (cloudflare/next-on-pages#978)。正常に動作する 44.5.5 に固定する。
+npx --yes vercel@44.5.5 build
 sh scripts/patch-async-hooks.sh
 next-on-pages -s
