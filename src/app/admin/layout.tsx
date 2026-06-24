@@ -1,21 +1,14 @@
 /**
  * 管理画面共通レイアウト
  * 仕様書 §3.1 / §11.10
- *   - AdminGate で LIFF + 管理者認可チェック
- *   - ヘッダーはブランド色 + 下部は 5 タブ (ダッシュ / 予約 / 枠 / QR / 配信)
+ *   - AdminGate が ID/パスワードのセッション認可とクロム（ヘッダー／タブバー）を担う。
+ *   - /admin/login だけはクロム無しでログインフォームを表示する。
  */
 
 import AdminGate from "@/components/AdminGate";
-import AdminTabBar from "@/components/AdminTabBar";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <AdminGate>
-      <header className="app-header">向日葵株式会社 管理</header>
-      <main className="app-main">{children}</main>
-      <AdminTabBar />
-    </AdminGate>
-  );
+  return <AdminGate>{children}</AdminGate>;
 }
 
-export const runtime = 'edge';
+export const runtime = "edge";

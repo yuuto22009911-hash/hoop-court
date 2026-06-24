@@ -13,7 +13,7 @@ import {
   adminMarkNoShow,
   adminMarkPaid
 } from "@/lib/gas";
-import { getIdToken } from "@/lib/auth";
+import { getAdminToken } from "@/lib/adminAuth";
 import { formatRange, formatYen } from "@/lib/format";
 import type { Reservation } from "@/lib/types";
 
@@ -29,7 +29,7 @@ export default function AdminReservations() {
 
   async function load() {
     try {
-      const r = await adminListReservations(getIdToken(), {
+      const r = await adminListReservations(getAdminToken(), {
         status: status === "ALL" ? undefined : status,
         q: q || undefined
       });
@@ -44,7 +44,7 @@ export default function AdminReservations() {
     const method = window.prompt("支払い方法 (CASH / PAYPAY / BANK_TRANSFER)", "CASH");
     if (!method) return;
     try {
-      await adminMarkPaid(getIdToken(), id, method as "CASH" | "PAYPAY" | "BANK_TRANSFER");
+      await adminMarkPaid(getAdminToken(), id, method as "CASH" | "PAYPAY" | "BANK_TRANSFER");
       await load();
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
@@ -54,7 +54,7 @@ export default function AdminReservations() {
   async function markNoShow(id: string) {
     if (!confirm("No-Show としてマークしますか？")) return;
     try {
-      await adminMarkNoShow(getIdToken(), id);
+      await adminMarkNoShow(getAdminToken(), id);
       await load();
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));

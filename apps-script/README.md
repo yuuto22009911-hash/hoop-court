@@ -16,7 +16,13 @@
 | `reservations.create` | IDトークン | 予約作成（料金は GAS が算出） |
 | `reservations.listMine` | IDトークン | 自分の予約一覧 |
 | `reservations.cancel` | IDトークン | キャンセル（当面無料） |
+| `admin.login` | 不要 | ID/パスワードでログイン → セッショントークン発行（LINE不要） |
+| `admin.session` | セッション | トークンの有効性確認 |
+| `admin.logout` | セッション | セッション破棄 |
 | `admin.*` | 管理者 | 予約一覧/入金/No-Show/QR入場/枠/一斉配信/売上 |
+
+> 管理系 API の認証は2系統。**ID/パスワードのセッショントークン**（`/admin/login`、LINE不要）
+> または **LINE userId の許可リスト**（`ADMIN_USER_IDS` / `Admins` シート）のいずれかで通る。
 
 ## セットアップ手順
 
@@ -38,6 +44,8 @@
 | `LINE_MESSAGING_TOKEN` | 任意 | Messaging API チャネルアクセストークン（`admin.broadcast` 用） |
 | `ADMIN_USER_IDS` | 任意 | 管理者の LINE userId をカンマ区切り（`Admins` シートでも可） |
 | `SPREADSHEET_ID` | 任意 | スタンドアロン時の対象スプレッドシートID |
+| `ADMIN_LOGIN_USER` | 一時 | 管理ログインのユーザーID（`setAdminLogin()` 実行用。下記参照） |
+| `ADMIN_LOGIN_PASSWORD` | 一時 | 管理ログインのパスワード（実行後に自動削除される） |
 
 > `LINE_LOGIN_CHANNEL_ID` は、LIFF が属する **LINEログインチャネル**の Channel ID です
 > （LIFF ID とは別物）。IDトークンの `aud` 検証に使います。
@@ -56,6 +64,22 @@ GitHub → リポジトリ Settings → Secrets and variables → Actions → **
 
 → `main` へマージ（または再デプロイ）で本番反映。
 
+## 管理ログイン（ID/パスワード・LINE不要）
+
+PC のブラウザ等から `/admin/login` に **ユーザーID＋パスワード**で入れる。設定手順:
+
+1. プロジェクトの設定 → スクリプト プロパティに次を一時的に追加
+   - `ADMIN_LOGIN_USER` … 例 `himawari-admin`
+   - `ADMIN_LOGIN_PASSWORD` … 強固なパスワード
+2. エディタで関数 **`setAdminLogin`** を実行
+   - `AdminAuth` シートに **ソルト＋反復SHA-256ハッシュ**で保存し、`ADMIN_LOGIN_PASSWORD`（平文）は自動削除される。
+3. フロントの `/admin/login` に ID/パスワードを入力 → 管理画面へ。
+
+- パスワード変更も同じ2手順を再実行（同一 `ADMIN_LOGIN_USER` は上書き）。
+- ログイン成功でランダムなセッショントークンを発行し、`CacheService` で保持（6時間・操作で自動延長）。
+- 平文パスワードはどこにも保存されない（ハッシュのみ）。
+- LINE userId の許可リスト（`ADMIN_USER_IDS` / `Admins`）も従来どおり有効で、両方式が併存する。
+
 ## データモデル（シート列）
 
 - **Courts**: id, facility_id, name, court_type, sides_max, capacity, is_active, created_at
@@ -65,6 +89,7 @@ GitHub → リポジトリ Settings → Secrets and variables → Actions → **
   created_at, updated_at, canceled_at
 - **Slots**（休業/占有の上書き）: court_id, starts_at, ends_at, status（OPEN/CLOSED/BLOCKED）
 - **Admins**: line_user_id, note
+- **AdminAuth**（ID/パスワード）: username, salt, hash, iterations, note, created_at, updated_at
 
 ## 料金（pricing.ts と一致・税込）
 

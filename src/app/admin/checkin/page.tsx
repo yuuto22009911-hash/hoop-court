@@ -12,7 +12,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { adminCheckin } from "@/lib/gas";
-import { getIdToken } from "@/lib/auth";
+import { getAdminToken } from "@/lib/adminAuth";
 
 interface BarcodeDetectorResult {
   rawValue: string;
@@ -104,7 +104,7 @@ export default function AdminCheckin() {
     setBusy(true);
     setError(null);
     try {
-      const r = await adminCheckin(getIdToken(), raw);
+      const r = await adminCheckin(getAdminToken(), raw);
       alert(
         `チェックイン完了\n${r.display_number}\n${r.group_name}\n${r.checked_in_at}`
       );
