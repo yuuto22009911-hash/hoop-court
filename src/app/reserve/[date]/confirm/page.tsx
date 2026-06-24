@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createReservation } from "@/lib/gas";
 import { getIdToken } from "@/lib/auth";
 import { formatRange, formatYen } from "@/lib/format";
+import { charterPrice, freePrice } from "@/lib/pricing";
 import type { BookingMode } from "@/lib/types";
 
 export default function ConfirmPage() {
@@ -54,6 +55,21 @@ export default function ConfirmPage() {
   }
 
   const modeLabel = mode === "FREE" ? "バスケフリーゴール" : "貸切（コート）";
+
+  // 料金の目安（pricing.ts と同ロジック。確定額は GAS が算出して一致する）
+  const estimate = useMemo(() => {
+    const s = payload.starts_at;
+    const e = payload.ends_at;
+    if (!s || !e) return 0;
+    const ymd = s.slice(0, 10);
+    const startMin = Number(s.slice(11, 13)) * 60 + Number(s.slice(14, 16));
+    const endMin = Number(e.slice(11, 13)) * 60 + Number(e.slice(14, 16));
+    if (endMin <= startMin) return 0;
+    if (mode === "FREE") {
+      return freePrice(ymd, (endMin - startMin) / 30, Number(payload.headcount) || 1);
+    }
+    return charterPrice(ymd, startMin, endMin);
+  }, [payload, mode]);
 
   if (done) {
     return (
@@ -102,6 +118,13 @@ export default function ConfirmPage() {
           {payload.rep_name && <Row label="代表者" value={payload.rep_name} />}
           {payload.note && <Row label="備考" value={payload.note} />}
         </dl>
+
+        {estimate > 0 && (
+          <div className="price-hint mb-4 flex items-center justify-between">
+            <span className="font-semibold">金額（目安）</span>
+            <span className="text-lg font-bold">{formatYen(estimate)}</span>
+          </div>
+        )}
 
         <div className="notice mb-4">
           <p className="text-sm mb-1 font-semibold">当日現地でお支払いください</p>
