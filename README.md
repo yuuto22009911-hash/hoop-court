@@ -84,8 +84,14 @@ npm run build
 - キャンセルは当面無料（himawari-app の暫定方針と一致）。
 - 土日祝の判定は `src/lib/holidays.ts`（2026–2027 の祝日表。年次でメンテ）。
 
-> ⚠ 本番の確定金額は GAS（このリポジトリ外）が計算する。`pricing.ts` はフロントの見積/DEMO を
-> GAS と一致させるための定義であり、**料金改定時は GAS と同時に更新する**こと。
+> ⚠ 本番の確定金額は GAS バックエンド（`apps-script/Code.gs`）が算出する。`pricing.ts` はフロントの
+> 見積/DEMO を GAS と一致させるための定義であり、**料金改定時は両方を同時に更新する**こと。
+
+## バックエンド (Google Apps Script)
+
+本番（`NEXT_PUBLIC_DEMO_MODE=0`）の API は **`apps-script/`** の Apps Script + Google スプレッドシート。
+`src/lib/gas.ts` の action 契約に準拠し、料金は `src/lib/pricing.ts` と厳密一致。
+デプロイ手順は [`apps-script/README.md`](apps-script/README.md) を参照。
 
 ## デプロイ (仕様書 §11.6)
 
