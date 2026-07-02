@@ -2,24 +2,19 @@
 
 [Ghostty](https://ghostty.org) ターミナルの個人設定。
 fendo181 さんの記事 [「Ghosttyへ入門する」](https://zenn.dev/fendo181/articles/2b75b12c80fe06)
-の「最終的な自分のconfig（2026年1月時点）」の構成を土台に、フォント・テーマ・キーバインドを自分仕様へ調整したもの。
-
-> ℹ️ 元記事の config コードブロックは Zenn 側のアクセス制限で本文を機械取得できなかったため、
-> 記事内で解説されている設定値（`font-family = BlexMono Nerd Font Mono` / `font-size = 16`、
-> `ghostty +list-themes` からのテーマ選択、キーバインドの解説）に沿って再構成している。
-> 元記事の config をそのまま使いたい場合は、その内容を [`config`](./config) に貼り替えれば良い。
+の「最終的な自分のconfig（2026年1月時点）」をベースにした、macOS 向けの個人設定。
 
 ## 中身
 
 | 項目 | 内容 |
 | --- | --- |
-| フォント | `BlexMono Nerd Font Mono` 16px（Nerd Font でアイコン表示） |
-| テーマ | `catppuccin-mocha`（ダーク。`ghostty +list-themes` で変更可） |
-| ウィンドウ | padding 12 / 透過 0.96 / macOS は blur 有効 |
-| キーバインド | ペイン分割・移動(hjkl)・リサイズ・タブ・フォントサイズ・クイックターミナル |
-| macOS | `macos-option-as-alt` 有効 |
+| フォント | サイズ 14 / `adjust-cell-height = 10%`（フォントは既定。`font-family` 行を外せば BlexMono などに変更可） |
+| テーマ | `Mariana`（`ghostty +list-themes` で変更可） |
+| ウィンドウ | 透過 0.90 + blur 20 / padding 10 / titlebar transparent |
+| 操作性 | `copy-on-select` / クリップボード read・write 許可 / 入力中カーソル非表示 |
+| キーバインド | 分割(⌘+Enter=下, ⌘+Shift+Enter=右) / 移動(⌘+矢印) / リサイズ(⌘+Shift+矢印) / ⌘+W で閉じる |
 
-キーバインドやテーマはコメント付きで、Linux 向けの差分も末尾に併記している。
+設定は macOS 前提（`cmd` / `macos-*`）。各行にコメントを付けている。
 
 ## インストール
 
