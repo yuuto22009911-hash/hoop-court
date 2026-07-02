@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>React 超入門 #07 — 外の世界とやりとりする（useEffect）</title>
+<style>
+  :root {
+    --bg: #0f1720;
+    --panel: #16212e;
+    --panel2: #1c2a3a;
+    --ink: #e6edf3;
+    --muted: #9fb3c8;
+    --accent: #58a6ff;
+    --accent2: #7ee787;
+    --warn: #f0b849;
+    --danger: #ff7b72;
+    --border: #2a3a4d;
+    --code-bg: #0b1119;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.9;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 96px; }
+  header.hero {
+    background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 28px;
+  }
+  header.hero .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .08em; font-size: .82rem; }
+  header.hero h1 { margin: 6px 0 8px; font-size: 1.55rem; line-height: 1.4; }
+  header.hero p { margin: 0; color: var(--muted); }
+
+  .recap {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-left: 3px solid var(--warn); border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 26px;
+  }
+  .recap .k { color: var(--warn); font-weight: 700; }
+
+  section {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px 26px; margin-bottom: 22px;
+  }
+  h2 { font-size: 1.25rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+  .step-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; background: var(--accent2); color: #0b1119;
+    font-weight: 800; border-radius: 50%; font-size: .9rem; flex: none;
+  }
+  .lead { color: var(--muted); margin: 4px 0 16px; }
+  p { margin: 12px 0; }
+  strong { color: #fff; }
+  .big-point {
+    text-align: center; font-size: 1.12rem; font-weight: 700; line-height: 1.7;
+    padding: 20px; background: var(--code-bg); border: 1px dashed var(--accent);
+    border-radius: 10px; margin: 8px 0;
+  }
+  .big-point .accent { color: var(--accent); }
+  .big-point .accent2 { color: var(--accent2); }
+
+  /* データ取得デモ */
+  .demo {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin: 18px 0;
+  }
+  .demo button {
+    font: inherit; font-weight: 700; cursor: pointer; border: none;
+    padding: 10px 22px; border-radius: 8px; background: var(--accent); color: #0b1119;
+  }
+  .demo .screen {
+    margin-top: 14px; min-height: 60px; display: flex; align-items: center; justify-content: center;
+    background: var(--panel2); border: 1px dashed var(--border); border-radius: 10px;
+    padding: 16px; text-align: center; font-weight: 600;
+  }
+  .demo .muted { color: var(--muted); font-weight: 400; }
+
+  /* タイムライン図 */
+  .timeline { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; margin: 16px 0; }
+  .timeline .row { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; }
+  .timeline .row .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #0b1119; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: .82rem; }
+  .timeline .row .n.eff { background: var(--accent2); }
+  .timeline .row .txt { font-size: .92rem; }
+
+  .dep { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .dep .c { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .dep .c .t { font-family: monospace; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+  @media (max-width: 560px) { .dep { grid-template-columns: 1fr; } }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; font-size: .86rem; line-height: 1.7;
+  }
+  pre code { font-family: "SF Mono", Consolas, monospace; color: #c9d6e2; }
+  .cmt { color: var(--muted); }
+  .kw { color: #ff9db3; }
+  .fn { color: var(--accent2); }
+  .tagc { color: var(--accent); }
+  .str { color: #a5d6ff; }
+  code.inline {
+    background: var(--code-bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 6px; font-size: .88em; color: var(--accent2);
+    font-family: "SF Mono", Consolas, monospace;
+  }
+  .callout {
+    border-radius: 8px; padding: 14px 16px; margin: 16px 0;
+    border: 1px solid var(--border); background: var(--panel2); border-left: 3px solid var(--accent2);
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.trap { border-left-color: var(--danger); }
+  .callout .k { font-weight: 700; color: var(--accent2); }
+  .callout.warn .k { color: var(--warn); }
+  .callout.trap .k { color: var(--danger); }
+
+  .summary { background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%); }
+  .summary ul { margin: 8px 0 0; padding-left: 22px; }
+  .summary li { margin: 8px 0; }
+  .glossary dt { font-weight: 700; color: var(--accent2); margin-top: 12px; }
+  .glossary dd { margin: 2px 0 0; }
+  footer { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 40px; }
+  .filelabel { font-size: .74rem; color: var(--muted); font-family: monospace; background: var(--panel2); border: 1px solid var(--border); border-bottom: none; border-radius: 8px 8px 0 0; padding: 4px 12px; display: inline-block; margin-bottom: -6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">REACT 超入門 #07</div>
+    <h1>外の世界とやりとりする<br />— useEffect</h1>
+    <p>「ページを開いたら、サーバーへデータを取りに行く」——こういう処理の置き場所です。今回もやさしく。</p>
+  </header>
+
+  <div class="recap">
+    <span class="k">これまで：</span> 画面が動くきっかけは「ユーザーの操作」（クリック・入力）でした。
+    でも今回は「<strong>操作していないのに、画面が出た瞬間にやりたいこと</strong>」の話です。
+  </div>
+
+  <section>
+    <h2><span class="step-badge">1</span>こんなこと、したくないですか？</h2>
+    <ul>
+      <li>予約ページを<strong>開いたら</strong>、その日の空き状況をサーバーから<strong>取ってくる</strong></li>
+      <li>アプリを<strong>開いたら</strong>、LINE ログインを<strong>初期化する</strong></li>
+      <li>マイページを<strong>開いたら</strong>、自分の予約一覧を<strong>読み込む</strong></li>
+    </ul>
+    <p>どれも「ボタンを押したら」ではなく、<strong>「画面が表示されたら自動で」</strong>やりたい処理です。これを書く場所が <code class="inline">useEffect</code>（ユーズ・エフェクト）です。</p>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">2</span>useEffect＝「画面を出したあとに、これやっといて」</h2>
+    <div class="big-point">
+      <span class="accent2">useEffect</span> ＝ 画面を描き終わったあとに<br />
+      <span class="accent">自動で実行してほしい処理</span>を書く場所。
+    </div>
+    <p>React は「まず画面を出す」→「そのあと useEffect の中身を実行」という順で動きます。だから「開いた瞬間にデータ取得」がここに書けるのです。</p>
+    <div class="timeline">
+      <div class="row"><span class="n">1</span><span class="txt">ページを開く → React が画面を描く（まず「読み込み中...」を表示）</span></div>
+      <div class="row"><span class="n eff">2</span><span class="txt"><strong>useEffect が動く</strong> → サーバーへデータを取りに行く</span></div>
+      <div class="row"><span class="n">3</span><span class="txt">データが返ってきたら State を更新（#03）→ 画面が描き直される</span></div>
+      <div class="row"><span class="n">4</span><span class="txt">「読み込み中...」が、取れたデータの表示に変わる</span></div>
+    </div>
+    <div class="callout">
+      <span class="k">たとえ話</span><br />
+      お店を<strong>開けたら（画面表示）</strong>、まず<strong>倉庫に在庫を確認しに行く（useEffect でデータ取得）</strong>。
+      在庫が分かったら<strong>棚に並べ直す（State更新→再描画）</strong>。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">3</span>触ってみる</h2>
+    <p class="lead">ボタンを押すと「ページを開いた」ことにして、データ取得（1.2秒の待ち）を再現します。</p>
+    <div class="demo">
+      <button id="open" type="button">ページを開く（再現）</button>
+      <div class="screen" id="screen"><span class="muted">まだ開いていません</span></div>
+    </div>
+    <p>「開く → まず読み込み中 → 少し待つ → データ表示」。この流れが useEffect の典型です。</p>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">4</span>コードで見る</h2>
+    <p class="lead">形はいつも <code class="inline">useEffect(() =&gt; { やりたいこと }, [いつ動かすか])</code>。</p>
+<pre><code><span class="kw">const</span> [slots, setSlots] = <span class="fn">useState</span>([]);   <span class="cmt">// 空き状況を入れる箱</span>
+
+<span class="fn">useEffect</span>(() =&gt; {
+  <span class="cmt">// 画面が出たあとに自動で動く</span>
+  <span class="fn">availabilityRange</span>(...).<span class="fn">then</span>((r) =&gt; {
+    <span class="fn">setSlots</span>(r.slots);   <span class="cmt">// 取れたデータで State を更新 → 再描画</span>
+  });
+}, []);                    <span class="cmt">// ← [] = 最初の1回だけ動かす</span></code></pre>
+    <ul>
+      <li>1つめの <code class="inline">() =&gt; { ... }</code> …… <strong>やりたい処理</strong>（データ取得など）</li>
+      <li>2つめの <code class="inline">[]</code> …… <strong>いつ動かすか</strong>を指定する「依存配列」</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">5</span>いちばん大事：2つめの [ ]（依存配列）</h2>
+    <p>「いつ動かすか」を、この配列で決めます。ここが useEffect の肝です。</p>
+    <div class="dep">
+      <div class="c"><div class="t">[]（空）</div>最初の1回だけ動く。<br>例：開いたときにログイン初期化。</div>
+      <div class="c"><div class="t">[date]</div>date が変わるたびに動く。<br>例：見ている日付が変わったら空き状況を取り直す。</div>
+    </div>
+    <div class="callout warn">
+      <span class="k">イメージ</span><br />
+      「<strong>ここに入れた値が変わったら、もう一度やってね</strong>」というお願いリスト。
+      空っぽ <code class="inline">[]</code> なら「変わるものが無い＝最初の1回だけ」。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">6</span>あなたのアプリでは（実物）</h2>
+    <p>予約画面では、日付が変わるたびに空き状況を取り直しています👇</p>
+    <div class="filelabel">src/app/reserve/[date]/page.tsx（簡略化）</div>
+<pre><code><span class="fn">useEffect</span>(() =&gt; {
+  <span class="fn">availabilityRange</span>(courtId, from, to)
+    .<span class="fn">then</span>((r) =&gt; <span class="fn">setSlots</span>(r.slots));   <span class="cmt">// 取得→State更新</span>
+}, [courtId, date]);   <span class="cmt">// コートか日付が変わったら取り直す</span></code></pre>
+    <p><code class="inline">LiffGate</code> でも、開いたときに <code class="inline">initLiff()</code>（LINEログイン初期化）→ <code class="inline">authMe()</code>（本人確認）を useEffect でやっています。「開いた瞬間に外とやりとり」の典型例です。</p>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">!</span>軽く知っておく：後片付け（クリーンアップ）</h2>
+    <p>useEffect は、<code class="inline">return</code> で「<strong>後片付けの処理</strong>」も書けます。画面を閉じるときに呼ばれます（タイマー停止など）。</p>
+<pre><code><span class="fn">useEffect</span>(() =&gt; {
+  <span class="kw">const</span> id = <span class="fn">setInterval</span>(...);      <span class="cmt">// タイマー開始</span>
+  <span class="kw">return</span> () =&gt; <span class="fn">clearInterval</span>(id);   <span class="cmt">// ← 閉じるとき止める（後片付け）</span>
+}, []);</code></pre>
+    <div class="callout">
+      <span class="k">今は「そういうのもある」でOK</span><br />
+      「開いたとき何かを始めたら、閉じるとき止める」——それを書く場所が return 部分、とだけ覚えておけば十分です。あなたの <code class="inline">LiffGate</code> にもこの後片付けが入っています。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">★</span>用語ミニ辞典</h2>
+    <dl class="glossary">
+      <dt>useEffect</dt>
+      <dd>画面を描いた<strong>あとに</strong>自動で動かしたい処理を書く道具。データ取得・初期化など。</dd>
+      <dt>副作用（effect）</dt>
+      <dd>「画面を返す」以外の処理（通信・タイマーなど）のこと。effect の名前の由来。</dd>
+      <dt>依存配列 <code class="inline">[ ]</code></dt>
+      <dd>useEffect を「いつ動かすか」を決める2つめの引数。<code class="inline">[]</code>＝最初の1回、<code class="inline">[x]</code>＝x が変わるたび。</dd>
+      <dt>クリーンアップ</dt>
+      <dd>useEffect の <code class="inline">return</code> に書く「後片付け」。画面を閉じるときに動く。</dd>
+    </dl>
+  </section>
+
+  <section class="summary">
+    <h2><span class="step-badge">✓</span>今日のまとめ</h2>
+    <ul>
+      <li><code class="inline">useEffect</code>＝<strong>画面を描いたあとに自動で動かしたい処理</strong>の置き場所。</li>
+      <li>典型は「<strong>開いたらデータを取りに行く</strong>」。取れたら State 更新（#03）で画面に反映。</li>
+      <li>形は <code class="inline">useEffect(() =&gt; { 処理 }, [いつ])</code>。</li>
+      <li>2つめの <strong>依存配列</strong>で動くタイミングを決める：<code class="inline">[]</code>＝1回だけ / <code class="inline">[x]</code>＝x が変わるたび。</li>
+      <li><code class="inline">return</code> に後片付け（クリーンアップ）を書ける。</li>
+      <li>あなたのアプリの空き状況取得・LINEログイン初期化がまさにこれ。</li>
+    </ul>
+  </section>
+
+  <footer>React 超入門 #07 ・ ここまでで React の主要な道具（部品・Props・State・入力・リスト・条件・useEffect）が一通り揃いました。次回 #08 は「全部つなげて小さなアプリを読む」総まとめを予定。</footer>
+
+</div>
+
+<script>
+  // #07 体験：useEffect の流れ（開く→読み込み中→データ表示）を再現
+  (function () {
+    var btn = document.getElementById("open");
+    var screen = document.getElementById("screen");
+    btn.addEventListener("click", function () {
+      // 1) まず画面を描く（読み込み中）
+      screen.innerHTML = '<span class="muted">読み込み中... ⏳</span>';
+      // 2) useEffect でデータ取得（ここでは1.2秒待つ疑似通信）
+      setTimeout(function () {
+        // 3) 取れたデータで表示を更新（State更新→再描画のつもり）
+        screen.innerHTML = '7/3 の空き：9:00〜 ◎ / 10:00〜 ◎ / 11:00〜 ×';
+      }, 1200);
+    });
+  })();
+</script>
+</body>
+</html>

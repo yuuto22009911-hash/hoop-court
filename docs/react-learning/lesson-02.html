@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>React 超入門 #02 — 部品にデータを渡す（Props）</title>
+<style>
+  :root {
+    --bg: #0f1720;
+    --panel: #16212e;
+    --panel2: #1c2a3a;
+    --ink: #e6edf3;
+    --muted: #9fb3c8;
+    --accent: #58a6ff;
+    --accent2: #7ee787;
+    --warn: #f0b849;
+    --border: #2a3a4d;
+    --code-bg: #0b1119;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.9;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 96px; }
+  header.hero {
+    background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 28px;
+  }
+  header.hero .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .08em; font-size: .82rem; }
+  header.hero h1 { margin: 6px 0 8px; font-size: 1.55rem; line-height: 1.4; }
+  header.hero p { margin: 0; color: var(--muted); }
+
+  .recap {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-left: 3px solid var(--warn); border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 26px;
+  }
+  .recap .k { color: var(--warn); font-weight: 700; }
+
+  section {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px 26px; margin-bottom: 22px;
+  }
+  h2 { font-size: 1.25rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+  .step-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; background: var(--accent2); color: #0b1119;
+    font-weight: 800; border-radius: 50%; font-size: .9rem; flex: none;
+  }
+  .lead { color: var(--muted); margin: 4px 0 16px; }
+  p { margin: 12px 0; }
+  strong { color: #fff; }
+  .big-point {
+    text-align: center; font-size: 1.15rem; font-weight: 700; line-height: 1.7;
+    padding: 20px; background: var(--code-bg); border: 1px dashed var(--accent);
+    border-radius: 10px; margin: 8px 0;
+  }
+  .big-point .accent { color: var(--accent); }
+  .big-point .accent2 { color: var(--accent2); }
+
+  /* たい焼きの型の図 */
+  .taiyaki { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin: 18px 0; }
+  .taiyaki .mold { background: var(--panel2); border: 2px dashed var(--accent); border-radius: 12px; padding: 14px 18px; text-align: center; }
+  .taiyaki .mold .big { font-size: 2rem; }
+  .taiyaki .mold .lbl { font-size: .75rem; color: var(--accent); font-family: monospace; margin-top: 4px; }
+  .taiyaki .plus { font-size: 1.6rem; color: var(--muted); font-weight: 800; }
+  .taiyaki .eq { font-size: 1.6rem; color: var(--accent2); font-weight: 800; }
+
+  /* ボタンの見本 */
+  .btn-demo { display: flex; gap: 12px; flex-wrap: wrap; margin: 12px 0 4px; }
+  .btn-demo .b { padding: 8px 22px; border-radius: 8px; font-weight: 700; color: #0b1119; }
+  .btn-demo .b.p { background: var(--accent); }
+  .btn-demo .b.g { background: var(--panel2); color: var(--ink); border: 1px solid var(--border); }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; font-size: .88rem; line-height: 1.7;
+  }
+  pre code { font-family: "SF Mono", Consolas, monospace; color: #c9d6e2; }
+  .cmt { color: var(--muted); }
+  .kw { color: #ff9db3; }
+  .fn { color: var(--accent2); }
+  .tagc { color: var(--accent); }
+  .str { color: #a5d6ff; }
+  code.inline {
+    background: var(--code-bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 6px; font-size: .88em; color: var(--accent2);
+    font-family: "SF Mono", Consolas, monospace;
+  }
+  .callout {
+    border-radius: 8px; padding: 14px 16px; margin: 16px 0;
+    border: 1px solid var(--border); background: var(--panel2); border-left: 3px solid var(--accent2);
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout .k { font-weight: 700; color: var(--accent2); }
+  .callout.warn .k { color: var(--warn); }
+
+  .flow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin: 16px 0; }
+  .flow .box { background: var(--panel2); border: 1px solid var(--border); padding: 8px 14px; border-radius: 8px; font-weight: 600; }
+  .flow .box.parent { border-color: var(--accent); color: var(--accent); }
+  .flow .box.child { border-color: var(--accent2); color: var(--accent2); }
+  .flow .arrow { color: var(--muted); font-weight: 800; font-size: 1.2rem; }
+
+  .summary { background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%); }
+  .summary ul { margin: 8px 0 0; padding-left: 22px; }
+  .summary li { margin: 8px 0; }
+  .glossary dt { font-weight: 700; color: var(--accent2); margin-top: 12px; }
+  .glossary dd { margin: 2px 0 0; }
+  footer { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">REACT 超入門 #02</div>
+    <h1>部品にデータを渡す（Props）<br />— 同じ部品で、違う中身を出す</h1>
+    <p>前回の「同じ部品を使い回せる」の続き。今回も、たとえ話と図でやさしくいきます。</p>
+  </header>
+
+  <div class="recap">
+    <span class="k">前回(#01)の復習：</span> コンポーネント＝画面の「部品」。正体は「画面を返す関数」で、
+    <code class="inline">&lt;Button /&gt;</code> と置けば何個でも使い回せる、でした。
+  </div>
+
+  <section>
+    <h2><span class="step-badge">1</span>こんな疑問、ありませんか？</h2>
+    <p>前回、同じボタンを何個でも置ける、と言いました。でも実際のアプリでは…</p>
+    <div class="btn-demo">
+      <span class="b p">予約する</span>
+      <span class="b g">キャンセル</span>
+    </div>
+    <p>のように<strong>文字が違うボタン</strong>が要りますよね。「予約する」用と「キャンセル」用で、<strong>別々の部品を作らないといけないの？</strong></p>
+    <div class="big-point">
+      いいえ。同じ部品に <span class="accent2">「文字だけ」外から渡せば</span> OK。<br />
+      これが <span class="accent">Props（プロップス）</span>。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">2</span>Props＝部品に渡す「具」</h2>
+    <p class="lead">たとえ話：たい焼きの型 🐟</p>
+    <div class="taiyaki">
+      <div class="mold"><div class="big">🐟</div><div class="lbl">型 = Button</div></div>
+      <span class="plus">+</span>
+      <div class="mold"><div class="big">🫘</div><div class="lbl">具 = "予約する"</div></div>
+      <span class="eq">=</span>
+      <div class="mold"><div class="big">🐟🫘</div><div class="lbl">予約するボタン</div></div>
+    </div>
+    <ul>
+      <li><strong>部品（型）</strong>はいつも同じ形 …… <code class="inline">Button</code></li>
+      <li><strong>Props（具）</strong>を変えると中身が変わる …… <code class="inline">"予約する"</code> / <code class="inline">"キャンセル"</code></li>
+    </ul>
+    <p>型は1つでいい。<strong>入れる具（Props）を変えるだけ</strong>で、違うボタンになります。</p>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">3</span>コードで見る</h2>
+    <p class="lead">「受け取る側」と「渡す側」の2つがあります。</p>
+
+    <p><strong>① 受け取る側（部品の定義）</strong> — <code class="inline">props</code> という箱で具を受け取る：</p>
+<pre><code><span class="kw">function</span> <span class="fn">Button</span>(props) {
+  <span class="kw">return</span> <span class="tagc">&lt;button&gt;</span>{props.label}<span class="tagc">&lt;/button&gt;</span>;
+  <span class="cmt">//               ↑ 受け取った文字をここに表示</span>
+}</code></pre>
+
+    <p><strong>② 渡す側（使うところ）</strong> — <code class="inline">label=</code> で具を渡す：</p>
+<pre><code><span class="tagc">&lt;Button</span> label=<span class="str">"予約する"</span> <span class="tagc">/&gt;</span>     <span class="cmt">// →「予約する」ボタン</span>
+<span class="tagc">&lt;Button</span> label=<span class="str">"キャンセル"</span> <span class="tagc">/&gt;</span>   <span class="cmt">// →「キャンセル」ボタン</span></code></pre>
+
+    <div class="callout">
+      <span class="k">読み方</span><br />
+      <code class="inline">label</code> は「名前（好きに付けてよい）」。<code class="inline">{props.label}</code> は
+      「受け取った label をここに出す」という意味。<code class="inline">{ }</code> は「ここに JavaScript の値を入れる窓」でしたね（#00の応用）。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">4</span>データは「親 → 子」へ流れる</h2>
+    <p>Props は、外側の部品（親）から中の部品（子）へ<strong>一方通行</strong>で渡されます。</p>
+    <div class="flow">
+      <span class="box parent">親：&lt;Button label="予約する" /&gt;</span>
+      <span class="arrow">──渡す──▶</span>
+      <span class="box child">子：Button の中で props.label を表示</span>
+    </div>
+    <div class="callout warn">
+      <span class="k">大事なルール</span><br />
+      渡された Props は、<strong>子の側で勝手に書き換えてはいけません</strong>（読むだけ）。
+      「もらった具はそのまま使う。作り変えない」と覚えておけば十分です。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">5</span>文字以外も渡せる</h2>
+    <p>Props で渡せるのは文字だけではありません。色・数字・オン/オフなど何でも渡せます。</p>
+<pre><code><span class="tagc">&lt;Button</span> label=<span class="str">"予約する"</span> color=<span class="str">"blue"</span> <span class="tagc">/&gt;</span>
+<span class="tagc">&lt;DayCard</span> date=<span class="str">"7/3"</span> available={<span class="kw">true</span>} <span class="tagc">/&gt;</span>   <span class="cmt">// 空きあり</span>
+<span class="tagc">&lt;DayCard</span> date=<span class="str">"7/5"</span> available={<span class="kw">false</span>} <span class="tagc">/&gt;</span>  <span class="cmt">// 満員</span></code></pre>
+    <p>同じ <code class="inline">DayCard</code> でも、<code class="inline">date</code>（日付）と <code class="inline">available</code>（空きの有無）を変えるだけで、カレンダーの各日を表示できます。あなたの体育館予約アプリのカレンダーも、この発想で作られています。</p>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">★</span>用語ミニ辞典</h2>
+    <dl class="glossary">
+      <dt>Props（プロップス）</dt>
+      <dd>部品に<strong>外から渡すデータ（設定・具）</strong>。properties（性質）の略。</dd>
+      <dt>親・子</dt>
+      <dd>部品を「置く側」が親、「置かれる側」が子。Props は<strong>親→子</strong>へ流れる。</dd>
+      <dt>読み取り専用</dt>
+      <dd>子は Props を<strong>見る（使う）だけ</strong>。書き換えてはいけない、という約束。</dd>
+    </dl>
+  </section>
+
+  <section class="summary">
+    <h2><span class="step-badge">✓</span>今日のまとめ</h2>
+    <ul>
+      <li><strong>Props＝部品に外から渡すデータ</strong>。たい焼きの「具」。</li>
+      <li>同じ部品でも、Props を変えれば<strong>違う中身を表示</strong>できる。</li>
+      <li>渡し方は <code class="inline">&lt;Button label="予約する" /&gt;</code>、受け取りは <code class="inline">props.label</code>。</li>
+      <li>Props は<strong>親→子の一方通行</strong>。子は書き換えず、読むだけ。</li>
+    </ul>
+  </section>
+
+  <footer>React 超入門 #02 ・ 次回 #03 は「画面が"変化"する仕組み（State）」＝ ボタンを押すと数字が増える、を図解で。</footer>
+
+</div>
+</body>
+</html>
