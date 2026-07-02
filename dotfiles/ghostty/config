@@ -61,3 +61,16 @@ keybind = cmd+shift+down=resize_split:down,20
 
 # Cmd + W で現在の「ペイン（分割）」を閉じる
 keybind = cmd+w=close_surface
+
+# --- キーバインド設定（タブ） ---
+# Cmd+T で新しいタブ
+keybind = cmd+t=new_tab
+# Cmd+Shift+[ / ] でタブを前後に移動
+keybind = cmd+shift+bracket_left=previous_tab
+keybind = cmd+shift+bracket_right=next_tab
+
+# --- キーバインド設定（ユーティリティ） ---
+# Cmd+Shift+Z で今のペインを一時的に全画面化（ズーム）
+keybind = cmd+shift+z=toggle_split_zoom
+# Cmd+, で設定ファイルを開く
+keybind = cmd+comma=open_config

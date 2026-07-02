@@ -13,6 +13,8 @@ fendo181 さんの記事 [「Ghosttyへ入門する」](https://zenn.dev/fendo18
 | ウィンドウ | 透過 0.90 + blur 20 / padding 10 / titlebar transparent |
 | 操作性 | `copy-on-select` / クリップボード read・write 許可 / 入力中カーソル非表示 |
 | キーバインド | 分割(⌘+Enter=下, ⌘+Shift+Enter=右) / 移動(⌘+矢印) / リサイズ(⌘+Shift+矢印) / ⌘+W で閉じる |
+| タブ | ⌘+T で新規 / ⌘+Shift+[ ] で前後移動 |
+| ユーティリティ | ⌘+Shift+Z でペイン全画面化 / ⌘+, で設定を開く |
 
 設定は macOS 前提（`cmd` / `macos-*`）。各行にコメントを付けている。
 
