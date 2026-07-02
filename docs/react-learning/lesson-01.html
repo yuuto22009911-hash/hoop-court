@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>React 学習ノート #01 — hoop-court のコードで学ぶ基礎</title>
+<title>React 超入門 #01 — コンポーネント（画面の部品）って何？</title>
 <style>
   :root {
     --bg: #0f1720;
@@ -14,7 +14,6 @@
     --accent: #58a6ff;
     --accent2: #7ee787;
     --warn: #f0b849;
-    --danger: #ff7b72;
     --border: #2a3a4d;
     --code-bg: #0b1119;
     --radius: 12px;
@@ -22,344 +21,216 @@
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN",
-      "Noto Sans JP", Meiryo, sans-serif;
-    background: var(--bg);
-    color: var(--ink);
-    line-height: 1.8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.9;
   }
-  .wrap { max-width: 900px; margin: 0 auto; padding: 32px 20px 96px; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 96px; }
   header.hero {
     background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 28px 28px 24px;
-    margin-bottom: 28px;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 28px;
   }
   header.hero .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .08em; font-size: .82rem; }
-  header.hero h1 { margin: 6px 0 8px; font-size: 1.65rem; line-height: 1.35; }
+  header.hero h1 { margin: 6px 0 8px; font-size: 1.55rem; line-height: 1.4; }
   header.hero p { margin: 0; color: var(--muted); }
-  .meta { margin-top: 14px; font-size: .82rem; color: var(--muted); display: flex; gap: 16px; flex-wrap: wrap; }
-  .meta span { background: var(--panel2); border: 1px solid var(--border); padding: 3px 10px; border-radius: 999px; }
 
-  nav.toc {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 18px 22px;
-    margin-bottom: 32px;
+  .recap {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-left: 3px solid var(--warn); border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 26px;
   }
-  nav.toc h2 { font-size: .95rem; margin: 0 0 10px; color: var(--accent2); }
-  nav.toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 28px; }
-  nav.toc a { color: var(--ink); text-decoration: none; }
-  nav.toc a:hover { color: var(--accent); text-decoration: underline; }
+  .recap .k { color: var(--warn); font-weight: 700; }
 
-  section.lesson {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px 26px;
-    margin-bottom: 22px;
+  section {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px 26px; margin-bottom: 22px;
   }
-  section.lesson h3 {
-    font-size: 1.2rem;
-    margin: 0 0 6px;
-    display: flex; align-items: baseline; gap: 10px;
-  }
-  .num {
+  h2 { font-size: 1.25rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+  .step-badge {
     display: inline-flex; align-items: center; justify-content: center;
-    min-width: 34px; height: 34px; padding: 0 8px;
-    background: var(--accent); color: #0b1119; font-weight: 800;
-    border-radius: 9px; font-size: .95rem;
+    width: 32px; height: 32px; background: var(--accent2); color: #0b1119;
+    font-weight: 800; border-radius: 50%; font-size: .9rem; flex: none;
   }
-  .tagline { color: var(--muted); font-size: .9rem; margin: 0 0 16px; }
+  .lead { color: var(--muted); margin: 4px 0 16px; }
   p { margin: 12px 0; }
+  strong { color: #fff; }
+  .big-point {
+    text-align: center; font-size: 1.15rem; font-weight: 700; line-height: 1.7;
+    padding: 20px; background: var(--code-bg); border: 1px dashed var(--accent);
+    border-radius: 10px; margin: 8px 0;
+  }
+  .big-point .accent { color: var(--accent); }
+  .big-point .accent2 { color: var(--accent2); }
+
+  /* 画面を部品に分解する図 */
+  .mock {
+    max-width: 320px; margin: 18px auto; border: 2px solid var(--border);
+    border-radius: 16px; overflow: hidden; background: var(--code-bg);
+  }
+  .mock .part { padding: 14px 16px; font-size: .9rem; position: relative; border-bottom: 2px dashed var(--border); }
+  .mock .part:last-child { border-bottom: none; }
+  .mock .tag {
+    position: absolute; top: 8px; right: 10px; font-size: .68rem;
+    background: var(--panel2); border: 1px solid var(--accent); color: var(--accent);
+    padding: 1px 8px; border-radius: 999px; font-family: monospace;
+  }
+  .mock .header { background: #21334a; font-weight: 700; }
+  .mock .cards { display: flex; gap: 8px; }
+  .mock .card { flex: 1; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; font-size: .8rem; }
+  .mock .btn { text-align: center; }
+  .mock .btn span { display: inline-block; background: var(--accent); color: #0b1119; font-weight: 700; padding: 6px 20px; border-radius: 8px; }
+  .mock .tab { background: #21334a; display: flex; justify-content: space-around; font-size: .82rem; }
+
+  .analogy { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .analogy .card { background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .analogy .card .t { font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+  @media (max-width: 560px) { .analogy { grid-template-columns: 1fr; } }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; font-size: .88rem; line-height: 1.7;
+  }
+  pre code { font-family: "SF Mono", Consolas, monospace; color: #c9d6e2; }
+  .cmt { color: var(--muted); }
+  .kw { color: #ff9db3; }
+  .fn { color: var(--accent2); }
+  .tagc { color: var(--accent); }
   code.inline {
     background: var(--code-bg); border: 1px solid var(--border);
-    padding: 1px 6px; border-radius: 6px; font-size: .88em;
-    color: var(--accent2); font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
-  }
-  pre {
-    background: var(--code-bg);
-    border: 1px solid var(--border);
-    border-left: 3px solid var(--accent);
-    border-radius: 8px;
-    padding: 14px 16px;
-    overflow-x: auto;
-    font-size: .86rem;
-    line-height: 1.6;
-  }
-  pre code {
-    font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
-    color: #c9d6e2;
-  }
-  .file-label {
-    font-size: .74rem; color: var(--muted); font-family: monospace;
-    background: var(--panel2); border: 1px solid var(--border);
-    border-bottom: none; border-radius: 8px 8px 0 0;
-    padding: 4px 12px; display: inline-block; margin-bottom: -6px;
+    padding: 1px 6px; border-radius: 6px; font-size: .88em; color: var(--accent2);
+    font-family: "SF Mono", Consolas, monospace;
   }
   .callout {
-    border-radius: 8px; padding: 12px 16px; margin: 16px 0;
-    border: 1px solid var(--border); background: var(--panel2);
+    border-radius: 8px; padding: 14px 16px; margin: 16px 0;
+    border: 1px solid var(--border); background: var(--panel2); border-left: 3px solid var(--accent2);
   }
-  .callout.tip { border-left: 3px solid var(--accent2); }
-  .callout.warn { border-left: 3px solid var(--warn); }
-  .callout.trap { border-left: 3px solid var(--danger); }
-  .callout .k { font-weight: 700; }
-  .callout.tip .k { color: var(--accent2); }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout .k { font-weight: 700; color: var(--accent2); }
   .callout.warn .k { color: var(--warn); }
-  .callout.trap .k { color: var(--danger); }
-  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: .9rem; }
-  th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; vertical-align: top; }
-  th { background: var(--panel2); color: var(--accent2); }
-  .core-formula {
-    text-align: center; font-size: 1.3rem; font-weight: 700;
-    padding: 18px; background: var(--code-bg); border-radius: 8px;
-    border: 1px dashed var(--accent); margin: 8px 0 4px;
-  }
-  .core-formula .accent { color: var(--accent); }
-  hr.soft { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .summary { background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%); }
+  .summary ul { margin: 8px 0 0; padding-left: 22px; }
+  .summary li { margin: 8px 0; }
+  .glossary dt { font-weight: 700; color: var(--accent2); margin-top: 12px; }
+  .glossary dd { margin: 2px 0 0; }
   footer { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 40px; }
-  .flow {
-    display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
-    background: var(--code-bg); border: 1px solid var(--border);
-    border-radius: 8px; padding: 14px; margin: 14px 0; font-size: .88rem;
-  }
-  .flow .step { background: var(--panel2); border: 1px solid var(--border); padding: 5px 12px; border-radius: 6px; }
-  .flow .arrow { color: var(--accent); font-weight: 700; }
-  .next {
-    background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%);
-    border: 1px solid var(--border); border-radius: var(--radius);
-    padding: 22px 26px; margin-top: 28px;
-  }
-  .next h3 { margin-top: 0; color: var(--accent2); }
-  .next ul { margin: 8px 0 0; padding-left: 20px; }
 </style>
 </head>
 <body>
 <div class="wrap">
 
   <header class="hero">
-    <div class="eyebrow">REACT 学習ノート #01</div>
-    <h1>hoop-court のコードで学ぶ React 基礎</h1>
-    <p>抽象的なサンプルではなく、あなたの体育館予約アプリ（Next.js 14 + TypeScript）の実コードを教材に、React のコア概念を 10 レッスンで整理します。</p>
-    <div class="meta">
-      <span>対象: React 18 / Next.js 14 App Router</span>
-      <span>題材: src/components, src/app/reserve</span>
-      <span>作成日: 2026-07-02</span>
-    </div>
+    <div class="eyebrow">REACT 超入門 #01</div>
+    <h1>コンポーネントって何？<br />— 画面を「部品」で作る</h1>
+    <p>前回の続き。今回も専門用語はやさしく、たとえ話と図でいきます。</p>
   </header>
 
-  <nav class="toc">
-    <h2>目次</h2>
-    <ol>
-      <li><a href="#l0">React の核心 (UI = f(state))</a></li>
-      <li><a href="#l1">コンポーネント</a></li>
-      <li><a href="#l2">JSX</a></li>
-      <li><a href="#l3">Props</a></li>
-      <li><a href="#l4">State と useState</a></li>
-      <li><a href="#l5">useEffect（副作用）</a></li>
-      <li><a href="#l6">イベントハンドラ</a></li>
-      <li><a href="#l7">制御コンポーネント（フォーム）</a></li>
-      <li><a href="#l8">リスト表示と key</a></li>
-      <li><a href="#l9">useMemo（派生値）</a></li>
-      <li><a href="#l10">条件付きレンダリング</a></li>
-      <li><a href="#rules">フックの2大ルール</a></li>
-    </ol>
-  </nav>
+  <div class="recap">
+    <span class="k">前回(#00)の復習：</span> React は「データを変えたら、画面を自動で書き換えてくれる道具」でした。
+    今回はもう一つの大事な役目 ——「画面を<strong>部品</strong>で作る」の話です。
+  </div>
 
-  <section class="lesson" id="l0">
-    <h3><span class="num">0</span>React の核心</h3>
-    <p class="tagline">まずこの1本の式を頭に入れる</p>
-    <div class="core-formula">UI = <span class="accent">f</span>(state)</div>
-    <p>「今の<b>状態(state)</b>」を渡すと「表示すべき画面」が返る関数。状態が変われば React が自動で画面を描き直します（<b>再レンダリング</b>）。<code class="inline">document.getElementById(...).innerHTML = ...</code> のように DOM を手で書き換える必要がなくなる、これが React の発想です。</p>
+  <section>
+    <h2><span class="step-badge">1</span>コンポーネント＝画面の「部品」</h2>
+    <p class="lead">まず結論。</p>
+    <div class="big-point">
+      React では、画面を1枚の大きな絵で描くのではなく<br />
+      <span class="accent2">小さな「部品」を組み合わせて</span>作る。<br />
+      この部品を <span class="accent">コンポーネント</span> と呼ぶ。
+    </div>
+    <p>ふだん見ているアプリの画面も、よく見ると「部品の集まり」です。下の図のように分けられます👇</p>
+
+    <div class="mock">
+      <div class="part header">🏀 体育館予約<span class="tag">&lt;Header /&gt;</span></div>
+      <div class="part cards">
+        <div class="card">7/3<br>◎ 空き</div>
+        <div class="card">7/4<br>◎ 空き</div>
+        <div class="card">7/5<br>× 満</div>
+        <span class="tag">&lt;DayCard /&gt;</span>
+      </div>
+      <div class="part btn"><span>予約する</span><span class="tag">&lt;Button /&gt;</span></div>
+      <div class="part tab"><span>予約する</span><span>マイページ</span><span class="tag">&lt;TabBar /&gt;</span></div>
+    </div>
+    <p>見出しバー・カード・ボタン・下のタブ —— <strong>この一つひとつがコンポーネント（部品）</strong>です。</p>
   </section>
 
-  <section class="lesson" id="l1">
-    <h3><span class="num">1</span>コンポーネント — UI の部品</h3>
-    <p class="tagline">画面を返す「ただの関数」</p>
-    <div class="file-label">src/components/TabBar.tsx</div>
-<pre><code>export default function TabBar() {
-  const pathname = usePathname();
-  return (
-    &lt;nav className="app-tabbar"&gt;
-      &lt;Link href="/"&gt;予約する&lt;/Link&gt;
-      &lt;Link href="/mypage"&gt;マイページ&lt;/Link&gt;
-    &lt;/nav&gt;
-  );
+  <section>
+    <h2><span class="step-badge">2</span>たとえ話：レゴ 🧱</h2>
+    <div class="analogy">
+      <div class="card"><div class="t">コンポーネント</div>レゴのブロック 1 個</div>
+      <div class="card"><div class="t">画面（ページ）</div>ブロックを組んだ完成品（お城や車）</div>
+    </div>
+    <p>小さなブロックを作っておけば、<strong>同じブロックを何度でも使い回せる</strong>のがミソ。
+    「ボタン」を1回作れば、あちこちで <code class="inline">&lt;Button /&gt;</code> と置くだけで同じボタンが何個でも出せます。</p>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">3</span>実際のコンポーネントを見てみる</h2>
+    <p class="lead">身構えなくて大丈夫。「画面を返す関数」というだけです。</p>
+    <p>いちばん簡単なコンポーネントはこんな形。<strong>「部品の名前」と「表示する中身」を書いた関数</strong>です。</p>
+<pre><code><span class="kw">function</span> <span class="fn">Button</span>() {          <span class="cmt">// ← Button という名前の部品</span>
+  <span class="kw">return</span> <span class="tagc">&lt;button&gt;</span>予約する<span class="tagc">&lt;/button&gt;</span>;   <span class="cmt">// ← 画面に出す中身</span>
 }</code></pre>
-    <ul>
-      <li>呼ばれると画面(JSX)を <code class="inline">return</code> するだけの関数。</li>
-      <li>関数名は<b>大文字始まり</b>（<code class="inline">TabBar</code>）。小文字だと HTML タグ扱いになる。</li>
-      <li><code class="inline">&lt;TabBar /&gt;</code> と書けば他の画面に貼り付けられる。部品の組み合わせで全体を作る。</li>
-    </ul>
-  </section>
-
-  <section class="lesson" id="l2">
-    <h3><span class="num">2</span>JSX — JS の中に HTML を書く記法</h3>
-    <p class="tagline">見た目そっくりだが実体は JavaScript の式</p>
-<pre><code>&lt;Link href="/" className={pathname === "/" ? "active" : ""}&gt;</code></pre>
-    <p><code class="inline">{ }</code> の中に JS を埋め込める。上は「今の URL がトップなら <code class="inline">active</code> クラスを付ける」＝<b>見た目を状態で条件分岐</b>する例で、<code class="inline">UI = f(state)</code> そのもの。</p>
-    <div class="callout warn"><span class="k">HTML との違い:</span> <code class="inline">class</code> → <code class="inline">className</code>、<code class="inline">onclick</code> → <code class="inline">onClick</code>。JS の予約語や慣習に合わせている。</div>
-  </section>
-
-  <section class="lesson" id="l3">
-    <h3><span class="num">3</span>Props — 親から子へのデータ</h3>
-    <p class="tagline">関数の引数。読み取り専用。</p>
-    <div class="file-label">src/components/LiffGate.tsx</div>
-<pre><code>export default function LiffGate({
-  children,
-  requireRegistered = true
-}: {
-  children: React.ReactNode;
-  requireRegistered?: boolean;
-}) { ... }</code></pre>
-    <ul>
-      <li>使う側: <code class="inline">&lt;LiffGate requireRegistered={false}&gt;...&lt;/LiffGate&gt;</code></li>
-      <li><code class="inline">children</code> は特別な props。タグで囲んだ中身が入る。末尾の <code class="inline">return &lt;&gt;{children}&lt;/&gt;</code> で「囲んだ中身をそのまま表示」。</li>
-      <li><b>props は子から書き換え不可</b>。データは常に親 → 子の一方向。</li>
-    </ul>
-  </section>
-
-  <section class="lesson" id="l4">
-    <h3><span class="num">4</span>State と useState — 変化するデータ</h3>
-    <p class="tagline">React の心臓部</p>
-    <div class="file-label">src/components/LiffGate.tsx</div>
-<pre><code>const [state, setState] = useState&lt;State&gt;({ kind: "loading" });</code></pre>
-    <ul>
-      <li><code class="inline">useState</code> は<b>フック(Hook)</b>。返り値は「現在値」と「更新関数」の2つ。</li>
-      <li><b><code class="inline">setState(...)</code> を呼ぶと関数が再実行され画面が描き直される。</b></li>
-    </ul>
-    <div class="file-label">同ファイル・末尾（UI = f(state) の実例）</div>
-<pre><code>if (state.kind === "loading")      return &lt;p&gt;読み込み中...&lt;/p&gt;;
-if (state.kind === "unregistered") return &lt;p&gt;登録画面に移動...&lt;/p&gt;;
-return &lt;&gt;{children}&lt;/&gt;;</code></pre>
-    <div class="callout trap"><span class="k">罠:</span> <code class="inline">state.kind = "ready"</code> と直接書き換えても画面は変わらない。必ず <code class="inline">setState</code> を通す。</div>
-  </section>
-
-  <section class="lesson" id="l5">
-    <h3><span class="num">5</span>useEffect — レンダリングの外で起きること</h3>
-    <p class="tagline">API通信・タイマー・購読などの「副作用」</p>
-    <div class="file-label">src/components/LiffGate.tsx</div>
-<pre><code>useEffect(() =&gt; {
-  let active = true;
-  (async () =&gt; {
-    await initLiff();
-    const res = await authMe(idToken);
-    if (!active) return;      // ← 画面が消えた後は setState しない
-    setState(...);
-  })();
-  return () =&gt; { active = false; };   // ← クリーンアップ
-}, [router, pathname, requireRegistered]);   // ← 依存配列</code></pre>
-    <ul>
-      <li><b>依存配列</b>の値が変わったときだけ再実行。<code class="inline">[]</code> なら初回のみ。</li>
-      <li><b>クリーンアップ関数</b>（return する関数）はコンポーネントが消える時 or 次の実行前に呼ばれる。ここでは通信完了時に画面が閉じていたら <code class="inline">setState</code> しない安全装置。</li>
-    </ul>
-  </section>
-
-  <section class="lesson" id="l6">
-    <h3><span class="num">6</span>イベントハンドラ — 操作に反応する</h3>
-    <p class="tagline">onClick には「関数を渡す」</p>
-    <div class="file-label">src/app/reserve/[date]/page.tsx</div>
-<pre><code>&lt;button onClick={() =&gt; router.back()}&gt;←&lt;/button&gt;
-
-onClick={() =&gt; { setMode("CHARTER"); resetSelection(); }}</code></pre>
-    <div class="callout trap"><span class="k">罠:</span> <code class="inline">onClick={router.back()}</code> は「今すぐ実行」になる。<code class="inline">() =&gt; router.back()</code> と<b>関数で包む</b>ことで「クリック時に実行」になる。</div>
-    <div class="flow">
-      <span class="step">操作</span><span class="arrow">→</span>
-      <span class="step">setMode で state 更新</span><span class="arrow">→</span>
-      <span class="step">再レンダリング</span><span class="arrow">→</span>
-      <span class="step">className が変わり見た目が変化</span>
+    <p>あとは、使いたい場所にタグのように置くだけ👇</p>
+<pre><code><span class="tagc">&lt;Button /&gt;</span>   <span class="cmt">// ここに「予約する」ボタンが出る</span>
+<span class="tagc">&lt;Button /&gt;</span>   <span class="cmt">// もう1個置けば、同じボタンがもう1個出る（使い回し！）</span></code></pre>
+    <div class="callout warn">
+      <span class="k">小さな決まりごと</span><br />
+      部品の名前は<strong>大文字はじまり</strong>（<code class="inline">Button</code>）。小文字だと、React が「普通の HTML タグ」だと勘違いします。今は「へぇ」で OK。
     </div>
   </section>
 
-  <section class="lesson" id="l7">
-    <h3><span class="num">7</span>制御コンポーネント — フォームの基本</h3>
-    <p class="tagline">入力欄の値 = state（single source of truth）</p>
-    <div class="file-label">src/app/reserve/[date]/page.tsx</div>
-<pre><code>&lt;input
-  type="text"
-  value={groupName}                               // ① state を表示
-  onChange={(e) =&gt; setGroupName(e.target.value)}  // ② 入力を state へ
-/&gt;</code></pre>
-    <p>「入力欄が値を覚える」のではなく「state が唯一の正解」。だから <code class="inline">groupName.trim().length &gt; 0</code> のように入力値をそのままロジックに使える。<code class="inline">select</code>・<code class="inline">textarea</code> も同じ（<code class="inline">value</code> + <code class="inline">onChange</code>）。</p>
+  <section>
+    <h2><span class="step-badge">4</span>部品を組み合わせて画面を作る</h2>
+    <p>部品の中に、別の部品を置けます。これで画面が完成します。</p>
+<pre><code><span class="kw">function</span> <span class="fn">App</span>() {         <span class="cmt">// ← 画面ぜんぶ、を表す部品</span>
+  <span class="kw">return</span> (
+    <span class="tagc">&lt;div&gt;</span>
+      <span class="tagc">&lt;Header /&gt;</span>    <span class="cmt">// 見出しバー</span>
+      <span class="tagc">&lt;DayCard /&gt;</span>   <span class="cmt">// カード</span>
+      <span class="tagc">&lt;Button /&gt;</span>    <span class="cmt">// ボタン</span>
+      <span class="tagc">&lt;TabBar /&gt;</span>    <span class="cmt">// 下のタブ</span>
+    <span class="tagc">&lt;/div&gt;</span>
+  );
+}</code></pre>
+    <div class="callout">
+      <span class="k">あなたのアプリでは</span><br />
+      実際に <code class="inline">TabBar</code> という部品が <code class="inline">src/components/TabBar.tsx</code> にあります（下の「予約する / マイページ」タブ）。まさにこの考え方で作られています。中身は次回以降ゆっくり読みます。
+    </div>
   </section>
 
-  <section class="lesson" id="l8">
-    <h3><span class="num">8</span>リスト表示と key</h3>
-    <p class="tagline">.map() で配列を JSX の配列に変換</p>
-    <div class="file-label">src/app/reserve/[date]/page.tsx（時刻表）</div>
-<pre><code>{Array.from({ length: SLOTS_PER_DAY }, (_, i) =&gt; i).map((i) =&gt; (
-  &lt;button key={i} onClick={() =&gt; onTapSlot(i)}&gt; ... &lt;/button&gt;
-))}</code></pre>
+  <section>
+    <h2><span class="step-badge">5</span>部品にすると何がうれしい？</h2>
+    <div class="analogy">
+      <div class="card"><div class="t">① 使い回せる</div>同じ部品を何度も書かなくていい。1回作れば置くだけ。</div>
+      <div class="card"><div class="t">② 分けて考えられる</div>「今日はボタンだけ直す」と、部品ごとに集中できる。大きな画面を一気に相手にしなくていい。</div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">★</span>用語ミニ辞典</h2>
+    <dl class="glossary">
+      <dt>コンポーネント</dt>
+      <dd>画面の「部品」。中身は<strong>「画面を返す関数」</strong>というだけ。例：ボタン、カード、見出しバー。</dd>
+      <dt>関数</dt>
+      <dd>「何かを受け取って、何かを返す機械」。コンポーネントは「呼ばれたら"画面"を返す関数」。</dd>
+      <dt>タグ</dt>
+      <dd><code class="inline">&lt;Button /&gt;</code> のような書き方。「ここにこの部品を置く」という意味。</dd>
+    </dl>
+  </section>
+
+  <section class="summary">
+    <h2><span class="step-badge">✓</span>今日のまとめ</h2>
     <ul>
-      <li>JSX 内では <code class="inline">for</code> 文が使えない。<b><code class="inline">.map()</code> がループ手段</b>。</li>
-      <li><b><code class="inline">key</code> が最重要</b>。一意な値を付けると、React が「追加/削除/移動」を効率的に判定できる。付けないと警告＆表示崩れの原因。</li>
+      <li>React は画面を<strong>「部品（コンポーネント）」の組み合わせ</strong>で作る。</li>
+      <li>コンポーネントの正体は<strong>「画面を返す関数」</strong>。難しく考えない。</li>
+      <li>部品は<strong>使い回せる</strong>（1回作って何度も置ける）。</li>
+      <li>部品ごとに<strong>分けて考えられる</strong>ので、複雑な画面もラクになる。</li>
     </ul>
-    <div class="callout tip"><span class="k">ヒント:</span> 本来は index より「データ固有の ID」が理想。ここはスロット番号=index に意味があるので <code class="inline">key={i}</code> で妥当。</div>
   </section>
 
-  <section class="lesson" id="l9">
-    <h3><span class="num">9</span>useMemo — 派生値の計算とキャッシュ</h3>
-    <p class="tagline">「持つべき state」と「計算で導ける値」を区別する</p>
-    <div class="file-label">src/app/reserve/[date]/page.tsx</div>
-<pre><code>const amount = useMemo(() =&gt; {
-  if (startSlot === null || endSlot === null) return 0;
-  if (mode === "CHARTER") return charterPrice(...);
-  return freePrice(...);
-}, [mode, startSlot, endSlot, headcount, date]);</code></pre>
-    <p>料金 <code class="inline">amount</code> は state から計算で導かれる<b>派生値</b>。別 state に持つと同期ズレのバグになるので<b>計算で求める</b>。<code class="inline">useMemo</code> は依存配列が変わった時だけ再計算する最適化。</p>
-    <div class="callout tip"><span class="k">このファイルの本当の state:</span> <code class="inline">courtId, slots, mode, startSlot, endSlot, purpose, groupName, ...</code> だけ。<code class="inline">amount, hasSelection, canProceed, dow</code> はすべて計算で導出。これがきれいな React コードの特徴。</div>
-  </section>
-
-  <section class="lesson" id="l10">
-    <h3><span class="num">10</span>条件付きレンダリング</h3>
-    <p class="tagline">3つのイディオムを使い分ける</p>
-<pre><code>// (a) 早期 return — 画面まるごと切替
-if (isPastOrToday) { return (&lt;&gt;...予約不可画面...&lt;/&gt;); }
-
-// (b) 三項演算子 — A か B か
-{mode === "CHARTER" ? (&lt;label&gt;用途...&lt;/label&gt;) : (&lt;label&gt;人数...&lt;/label&gt;)}
-
-// (c) &amp;&amp; — 条件を満たす時だけ表示
-{hasSelection &amp;&amp; &lt;p&gt;選択: ...&lt;/p&gt;}
-{amount &gt; 0 &amp;&amp; &lt;p&gt;金額: ...&lt;/p&gt;}</code></pre>
-    <div class="callout trap"><span class="k">罠:</span> <code class="inline">{count &amp;&amp; &lt;p&gt;...&lt;/p&gt;}</code> は count が <code class="inline">0</code> のとき画面に「0」が出る。<code class="inline">amount &gt; 0 &amp;&amp;</code> のように<b>必ず真偽値</b>にする。</div>
-  </section>
-
-  <section class="lesson" id="rules">
-    <h3><span class="num">★</span>フックの2大ルール</h3>
-    <table>
-      <tr><th>ルール</th><th>理由</th></tr>
-      <tr><td>① コンポーネント関数の<b>トップレベル</b>でのみ呼ぶ（if / ループの中で呼ばない）</td><td rowspan="2">React はフックを「呼ばれた順番」で管理している。順番がズレると壊れる。</td></tr>
-      <tr><td>② React コンポーネント（or 自作フック）の<b>中</b>でのみ呼ぶ</td></tr>
-    </table>
-    <hr class="soft" />
-    <h3 style="font-size:1.05rem;">用語まとめ</h3>
-    <table>
-      <tr><th>概念</th><th>役割</th><th>コード内の例</th></tr>
-      <tr><td>コンポーネント</td><td>UI の部品（関数）</td><td>TabBar, LiffGate</td></tr>
-      <tr><td>JSX</td><td>見た目を書く記法</td><td>&lt;nav&gt;...&lt;/nav&gt;</td></tr>
-      <tr><td>Props</td><td>親→子のデータ（読み取り専用）</td><td>children, requireRegistered</td></tr>
-      <tr><td>State</td><td>変化するデータ</td><td>useState&lt;State&gt;(...)</td></tr>
-      <tr><td>useEffect</td><td>副作用（通信・購読）</td><td>initLiff(), authMe()</td></tr>
-      <tr><td>イベント</td><td>操作への反応</td><td>onClick, onChange</td></tr>
-      <tr><td>useMemo</td><td>派生値の計算・キャッシュ</td><td>amount, slotAvail</td></tr>
-    </table>
-    <div class="callout tip"><span class="k">Next.js 補足:</span> ファイル冒頭の <code class="inline">"use client"</code> は「このコンポーネントはブラウザ側で動く（state / effect を使う）」という Next.js 固有の宣言。純粋な React にはない。</div>
-  </section>
-
-  <div class="next">
-    <h3>次回 (#02) の候補</h3>
-    <ul>
-      <li><b>confirm/page.tsx</b> — <code class="inline">useSearchParams</code> で URL からデータを受け取り、<code class="inline">fetch</code> で API へ送信する実例</li>
-      <li><b>カスタムフック</b> — LiffGate のロジックを <code class="inline">useLiffUser()</code> に切り出す（ロジックの再利用）</li>
-      <li><b>手を動かす課題</b> — 「団体名が未入力なら input の枠を赤くする」を自分で実装</li>
-    </ul>
-  </div>
-
-  <footer>React 学習ノート #01 ・ hoop-court ・ 実コードで学ぶシリーズ</footer>
+  <footer>React 超入門 #01 ・ 次回 #02 は「部品に"データ"を渡す（Props）」を、また図解でやさしく。</footer>
 
 </div>
 </body>
