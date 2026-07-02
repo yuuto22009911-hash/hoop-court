@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>React 超入門 #03 — 画面が変化する仕組み（State）</title>
+<style>
+  :root {
+    --bg: #0f1720;
+    --panel: #16212e;
+    --panel2: #1c2a3a;
+    --ink: #e6edf3;
+    --muted: #9fb3c8;
+    --accent: #58a6ff;
+    --accent2: #7ee787;
+    --warn: #f0b849;
+    --danger: #ff7b72;
+    --border: #2a3a4d;
+    --code-bg: #0b1119;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.9;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 96px; }
+  header.hero {
+    background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 28px;
+  }
+  header.hero .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .08em; font-size: .82rem; }
+  header.hero h1 { margin: 6px 0 8px; font-size: 1.55rem; line-height: 1.4; }
+  header.hero p { margin: 0; color: var(--muted); }
+
+  .recap {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-left: 3px solid var(--warn); border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 26px;
+  }
+  .recap .k { color: var(--warn); font-weight: 700; }
+
+  section {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px 26px; margin-bottom: 22px;
+  }
+  h2 { font-size: 1.25rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+  .step-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; background: var(--accent2); color: #0b1119;
+    font-weight: 800; border-radius: 50%; font-size: .9rem; flex: none;
+  }
+  .lead { color: var(--muted); margin: 4px 0 16px; }
+  p { margin: 12px 0; }
+  strong { color: #fff; }
+  .big-point {
+    text-align: center; font-size: 1.15rem; font-weight: 700; line-height: 1.7;
+    padding: 20px; background: var(--code-bg); border: 1px dashed var(--accent);
+    border-radius: 10px; margin: 8px 0;
+  }
+  .big-point .accent { color: var(--accent); }
+  .big-point .accent2 { color: var(--accent2); }
+
+  /* カウンターの実演 */
+  .counter {
+    display: flex; flex-direction: column; align-items: center; gap: 12px;
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 22px; margin: 18px 0;
+  }
+  .counter .disp { font-size: 2.6rem; font-weight: 800; color: var(--accent2); min-width: 80px; text-align: center; }
+  .counter .disp small { display: block; font-size: .8rem; color: var(--muted); font-weight: 400; }
+  .counter button {
+    font: inherit; font-weight: 700; cursor: pointer;
+    background: var(--accent); color: #0b1119; border: none;
+    padding: 10px 24px; border-radius: 8px;
+  }
+  .counter button:active { transform: translateY(1px); }
+  .counter .hint { font-size: .8rem; color: var(--muted); }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; font-size: .88rem; line-height: 1.7;
+  }
+  pre code { font-family: "SF Mono", Consolas, monospace; color: #c9d6e2; }
+  .cmt { color: var(--muted); }
+  .kw { color: #ff9db3; }
+  .fn { color: var(--accent2); }
+  .tagc { color: var(--accent); }
+  .num { color: #f0b849; }
+  code.inline {
+    background: var(--code-bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 6px; font-size: .88em; color: var(--accent2);
+    font-family: "SF Mono", Consolas, monospace;
+  }
+  .callout {
+    border-radius: 8px; padding: 14px 16px; margin: 16px 0;
+    border: 1px solid var(--border); background: var(--panel2); border-left: 3px solid var(--accent2);
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.trap { border-left-color: var(--danger); }
+  .callout .k { font-weight: 700; color: var(--accent2); }
+  .callout.warn .k { color: var(--warn); }
+  .callout.trap .k { color: var(--danger); }
+
+  .flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin: 16px 0; font-size: .9rem; }
+  .flow .box { background: var(--panel2); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-weight: 600; }
+  .flow .box.act { border-color: var(--warn); color: var(--warn); }
+  .flow .box.data { border-color: var(--accent2); color: var(--accent2); }
+  .flow .box.draw { border-color: var(--accent); color: var(--accent); }
+  .flow .arrow { color: var(--muted); font-weight: 800; }
+
+  .cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+  .cmp .card { border-radius: 10px; padding: 14px 16px; border: 1px solid var(--border); background: var(--code-bg); }
+  .cmp .card.props { border-top: 3px solid var(--accent2); }
+  .cmp .card.state { border-top: 3px solid var(--warn); }
+  .cmp .card .t { font-weight: 700; margin-bottom: 6px; }
+  .cmp .card.props .t { color: var(--accent2); }
+  .cmp .card.state .t { color: var(--warn); }
+  @media (max-width: 560px) { .cmp { grid-template-columns: 1fr; } }
+
+  .summary { background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%); }
+  .summary ul { margin: 8px 0 0; padding-left: 22px; }
+  .summary li { margin: 8px 0; }
+  .glossary dt { font-weight: 700; color: var(--accent2); margin-top: 12px; }
+  .glossary dd { margin: 2px 0 0; }
+  footer { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 40px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">REACT 超入門 #03</div>
+    <h1>画面が「変化」する仕組み（State）<br />— ボタンを押すと数字が増える</h1>
+    <p>いよいよ React の心臓部。ここが分かると「React 便利!」が実感できます。今回もやさしく。</p>
+  </header>
+
+  <div class="recap">
+    <span class="k">これまで：</span> #00 React は道具 / #01 画面は部品（コンポーネント）/ #02 部品にデータを渡す（Props）。
+    今回は「<strong>画面が動いて変わる</strong>」仕組みです。
+  </div>
+
+  <section>
+    <h2><span class="step-badge">1</span>まず、実際に触ってみる</h2>
+    <p class="lead">下のボタンを押してみてください（このページ内で本物が動きます）。</p>
+    <div class="counter">
+      <div class="disp" id="disp">0<small>今の数字</small></div>
+      <button id="btn" type="button">+1 する</button>
+      <div class="hint">押すたびに数字が増えます。この「変わる数字」が State です。</div>
+    </div>
+    <p>「押す → 数字が増える → 画面の表示も変わる」。この<strong>変化する値</strong>のことを、React では <strong>State（ステート＝状態）</strong>と呼びます。</p>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">2</span>State＝部品が"覚えておく"変わる値</h2>
+    <div class="big-point">
+      <span class="accent2">State</span> ＝ 部品の中で<span class="accent">変化して覚えておく</span>データ。<br />
+      State が変わると、React が<span class="accent">画面を自動で描き直す</span>。
+    </div>
+    <p>#00 で言った「<strong>データを変えたら画面が自動で書き換わる</strong>」の「データ」がまさにこの State です。ここで全部つながります。</p>
+    <div class="flow">
+      <span class="box act">ボタンを押す</span>
+      <span class="arrow">→</span>
+      <span class="box data">State（数字）が 0 → 1 に変わる</span>
+      <span class="arrow">→</span>
+      <span class="box draw">React が画面を描き直す</span>
+      <span class="arrow">→</span>
+      <span class="box">表示が「1」になる</span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">3</span>Props と何が違う？</h2>
+    <div class="cmp">
+      <div class="card props">
+        <div class="t">Props（前回 #02）</div>
+        <strong>外から</strong>もらう。<br>子は<strong>変えられない</strong>（読むだけ）。<br>例：ボタンの文字。
+      </div>
+      <div class="card state">
+        <div class="t">State（今回 #03）</div>
+        部品が<strong>自分で持つ</strong>。<br><strong>変えられる</strong>（変えると再描画）。<br>例：押した回数。
+      </div>
+    </div>
+    <p>ざっくり：<strong>Props＝外からもらう固定の設定</strong>、<strong>State＝自分で変えられる中身</strong>。</p>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">4</span>コードで見る（useState）</h2>
+    <p class="lead">State は <code class="inline">useState</code> という道具で作ります。</p>
+<pre><code><span class="kw">function</span> <span class="fn">Counter</span>() {
+  <span class="kw">const</span> [count, setCount] = <span class="fn">useState</span>(<span class="num">0</span>);
+  <span class="cmt">//     ↑今の値   ↑変える関数        ↑最初は 0</span>
+
+  <span class="kw">return</span> (
+    <span class="tagc">&lt;button</span> onClick={() =&gt; <span class="fn">setCount</span>(count + <span class="num">1</span>)}<span class="tagc">&gt;</span>
+      {count} 回
+    <span class="tagc">&lt;/button&gt;</span>
+  );
+}</code></pre>
+    <p>読み方：</p>
+    <ul>
+      <li><code class="inline">useState(0)</code> …… 「最初は 0 の State を作って」</li>
+      <li><code class="inline">count</code> …… <strong>今の値</strong>（表示に使う）</li>
+      <li><code class="inline">setCount</code> …… <strong>値を変える専用ボタン</strong>（関数）</li>
+      <li><code class="inline">onClick={() =&gt; setCount(count + 1)}</code> …… クリックで「今の値＋1」に更新</li>
+    </ul>
+    <div class="callout">
+      <span class="k">セット（2つ組）で受け取る</span><br />
+      <code class="inline">const [count, setCount] = useState(0)</code> は「<strong>今の値</strong>」と「<strong>変える関数</strong>」を1行で受け取る決まり文句。名前は自由ですが <code class="inline">xxx</code> / <code class="inline">setXxx</code> にするのが慣習です。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">5</span>いちばん大事な約束</h2>
+    <div class="callout trap">
+      <span class="k">やってはいけない</span><br />
+      <code class="inline">count = count + 1</code> と<strong>直接書き換えても画面は変わりません</strong>。
+      React が「変わった」と気づけないからです。
+    </div>
+    <div class="callout">
+      <span class="k">正しいやり方</span><br />
+      必ず <code class="inline">setCount(...)</code>（変える関数）を通す。これを呼ぶと React が
+      「State が変わった → 描き直そう」と動いてくれます。
+    </div>
+    <div class="big-point">
+      State を変えるときは<br /><span class="accent2">必ず「set○○」の関数を使う。</span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">★</span>用語ミニ辞典</h2>
+    <dl class="glossary">
+      <dt>State（ステート／状態）</dt>
+      <dd>部品が<strong>持っていて、変化する値</strong>。変えると画面が描き直される。例：押した回数、入力中の文字、開いてる/閉じてる。</dd>
+      <dt>useState</dt>
+      <dd>State を作る道具。<code class="inline">[今の値, 変える関数] = useState(最初の値)</code> の形で使う。</dd>
+      <dt>再描画（再レンダリング）</dt>
+      <dd>State が変わったとき、React が画面を<strong>自動で書き直す</strong>こと。</dd>
+    </dl>
+  </section>
+
+  <section class="summary">
+    <h2><span class="step-badge">✓</span>今日のまとめ</h2>
+    <ul>
+      <li><strong>State＝部品が持つ「変化する値」</strong>（押した回数など）。</li>
+      <li>State が変わると <strong>React が画面を自動で描き直す</strong>。#00 の「データを変えたら画面が変わる」の正体。</li>
+      <li>作る道具は <code class="inline">useState</code>。<code class="inline">[count, setCount] = useState(0)</code>。</li>
+      <li>変えるときは<strong>必ず set○○ 関数を使う</strong>（直接書き換えない）。</li>
+      <li>Props＝外からもらう固定の設定 / State＝自分で変えられる中身。</li>
+    </ul>
+  </section>
+
+  <footer>React 超入門 #03 ・ 次回 #04 は「入力フォーム」＝ 打った文字を State で覚える仕組みを、あなたのアプリの予約画面を例に。</footer>
+
+</div>
+
+<script>
+  // ページ内で本物の「State → 再描画」を体感してもらう小さなデモ
+  (function () {
+    var count = 0;                       // ← これが State のつもり
+    var disp = document.getElementById("disp");
+    var btn = document.getElementById("btn");
+    function render() {                  // ← 画面を描き直す関数
+      disp.innerHTML = count + '<small>今の数字</small>';
+    }
+    btn.addEventListener("click", function () {
+      count = count + 1;                 // 値を変えて
+      render();                          // 描き直す（Reactはこれを自動でやってくれる）
+    });
+  })();
+</script>
+</body>
+</html>
