@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>React 超入門 #05 — たくさん並べる（リストと map）</title>
+<style>
+  :root {
+    --bg: #0f1720;
+    --panel: #16212e;
+    --panel2: #1c2a3a;
+    --ink: #e6edf3;
+    --muted: #9fb3c8;
+    --accent: #58a6ff;
+    --accent2: #7ee787;
+    --warn: #f0b849;
+    --danger: #ff7b72;
+    --border: #2a3a4d;
+    --code-bg: #0b1119;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.9;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 96px; }
+  header.hero {
+    background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 28px;
+  }
+  header.hero .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .08em; font-size: .82rem; }
+  header.hero h1 { margin: 6px 0 8px; font-size: 1.55rem; line-height: 1.4; }
+  header.hero p { margin: 0; color: var(--muted); }
+
+  .recap {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-left: 3px solid var(--warn); border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 26px;
+  }
+  .recap .k { color: var(--warn); font-weight: 700; }
+
+  section {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px 26px; margin-bottom: 22px;
+  }
+  h2 { font-size: 1.25rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+  .step-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; background: var(--accent2); color: #0b1119;
+    font-weight: 800; border-radius: 50%; font-size: .9rem; flex: none;
+  }
+  .lead { color: var(--muted); margin: 4px 0 16px; }
+  p { margin: 12px 0; }
+  strong { color: #fff; }
+  .big-point {
+    text-align: center; font-size: 1.12rem; font-weight: 700; line-height: 1.7;
+    padding: 20px; background: var(--code-bg); border: 1px dashed var(--accent);
+    border-radius: 10px; margin: 8px 0;
+  }
+  .big-point .accent { color: var(--accent); }
+  .big-point .accent2 { color: var(--accent2); }
+
+  /* map の変換イメージ */
+  .transform { display: flex; align-items: center; justify-content: center; gap: 14px; flex-wrap: wrap; margin: 18px 0; }
+  .transform .col { text-align: center; }
+  .transform .chip { display: block; background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; margin: 4px 0; font-family: monospace; font-size: .82rem; }
+  .transform .chip.card { border-color: var(--accent); color: var(--accent); }
+  .transform .lbl { font-size: .78rem; color: var(--muted); margin-bottom: 4px; }
+  .transform .arrow { font-size: 1.6rem; color: var(--accent2); font-weight: 800; }
+
+  /* カレンダー見本 */
+  .cal { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 16px 0; }
+  .cal .day { background: var(--panel2); border: 1px solid var(--border); border-radius: 8px; padding: 10px; text-align: center; font-size: .82rem; }
+  .cal .day .d { font-weight: 700; }
+  .cal .day .ok { color: var(--accent2); }
+  .cal .day .ng { color: var(--danger); }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; font-size: .86rem; line-height: 1.7;
+  }
+  pre code { font-family: "SF Mono", Consolas, monospace; color: #c9d6e2; }
+  .cmt { color: var(--muted); }
+  .kw { color: #ff9db3; }
+  .fn { color: var(--accent2); }
+  .tagc { color: var(--accent); }
+  .str { color: #a5d6ff; }
+  code.inline {
+    background: var(--code-bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 6px; font-size: .88em; color: var(--accent2);
+    font-family: "SF Mono", Consolas, monospace;
+  }
+  .callout {
+    border-radius: 8px; padding: 14px 16px; margin: 16px 0;
+    border: 1px solid var(--border); background: var(--panel2); border-left: 3px solid var(--accent2);
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.trap { border-left-color: var(--danger); }
+  .callout .k { font-weight: 700; color: var(--accent2); }
+  .callout.warn .k { color: var(--warn); }
+  .callout.trap .k { color: var(--danger); }
+
+  .summary { background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%); }
+  .summary ul { margin: 8px 0 0; padding-left: 22px; }
+  .summary li { margin: 8px 0; }
+  .glossary dt { font-weight: 700; color: var(--accent2); margin-top: 12px; }
+  .glossary dd { margin: 2px 0 0; }
+  footer { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 40px; }
+  .filelabel { font-size: .74rem; color: var(--muted); font-family: monospace; background: var(--panel2); border: 1px solid var(--border); border-bottom: none; border-radius: 8px 8px 0 0; padding: 4px 12px; display: inline-block; margin-bottom: -6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">REACT 超入門 #05</div>
+    <h1>たくさん並べて表示する<br />— リストと map</h1>
+    <p>カレンダーの日付や時刻表のような「同じ形の繰り返し」を、コピペせずに作る方法です。</p>
+  </header>
+
+  <div class="recap">
+    <span class="k">これまで：</span> #01 部品 / #02 Props / #03 State / #04 入力フォーム。
+    今回は「<strong>同じ部品をデータの数だけ並べる</strong>」話です。
+  </div>
+
+  <section>
+    <h2><span class="step-badge">1</span>こんなの、手で書きたくないですよね</h2>
+    <p>予約カレンダーには日付がたくさん並びます。これを全部手書きすると…</p>
+<pre><code><span class="tagc">&lt;DayCard</span> date=<span class="str">"7/3"</span> <span class="tagc">/&gt;</span>
+<span class="tagc">&lt;DayCard</span> date=<span class="str">"7/4"</span> <span class="tagc">/&gt;</span>
+<span class="tagc">&lt;DayCard</span> date=<span class="str">"7/5"</span> <span class="tagc">/&gt;</span>
+<span class="cmt">... 30個 …もう嫌になる 😵</span></code></pre>
+    <p>データが増えるたびに書き足すのは大変だし、間違いのもと。<strong>データの一覧から自動で並べたい</strong>ですよね。</p>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">2</span>map ＝「一覧」を「部品の一覧」に変える</h2>
+    <div class="big-point">
+      データの配列を <span class="accent2">.map()</span> に通すと<br />
+      <span class="accent">部品（JSX）の並び</span>に一気に変換できる。
+    </div>
+    <p><code class="inline">.map()</code>（マップ）は「配列の1個1個を、別のものに作り変える」JavaScript の道具。React では「<strong>データ1個 → 部品1個</strong>」に変換するのに使います。</p>
+    <div class="transform">
+      <div class="col">
+        <div class="lbl">データの配列</div>
+        <span class="chip">"7/3"</span>
+        <span class="chip">"7/4"</span>
+        <span class="chip">"7/5"</span>
+      </div>
+      <div class="arrow">.map() ▶</div>
+      <div class="col">
+        <div class="lbl">部品の並び</div>
+        <span class="chip card">&lt;DayCard 7/3&gt;</span>
+        <span class="chip card">&lt;DayCard 7/4&gt;</span>
+        <span class="chip card">&lt;DayCard 7/5&gt;</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">3</span>コードで見る</h2>
+    <p class="lead">配列を用意して、<code class="inline">.map()</code> で部品に変換するだけ。</p>
+<pre><code><span class="kw">const</span> dates = [<span class="str">"7/3"</span>, <span class="str">"7/4"</span>, <span class="str">"7/5"</span>];   <span class="cmt">// データの一覧</span>
+
+<span class="kw">return</span> (
+  <span class="tagc">&lt;div&gt;</span>
+    {dates.<span class="fn">map</span>((date) =&gt; (
+      <span class="tagc">&lt;DayCard</span> key={date} date={date} <span class="tagc">/&gt;</span>
+    ))}
+  <span class="tagc">&lt;/div&gt;</span>
+);</code></pre>
+    <ul>
+      <li><code class="inline">dates.map((date) =&gt; ...)</code> …… 配列の1個ずつ（date）を受け取り、<code class="inline">&lt;DayCard&gt;</code> に変換</li>
+      <li>結果は <code class="inline">&lt;DayCard&gt;</code> が3個並んだもの</li>
+      <li>データを増やせば、書き足さなくても<strong>勝手に増える</strong>👍</li>
+    </ul>
+    <div class="cal">
+      <div class="day"><div class="d">7/3</div><div class="ok">◎ 空き</div></div>
+      <div class="day"><div class="d">7/4</div><div class="ok">◎ 空き</div></div>
+      <div class="day"><div class="d">7/5</div><div class="ng">× 満</div></div>
+      <div class="day"><div class="d">7/6</div><div class="ok">◎ 空き</div></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">4</span>key ＝ 一個ずつに付ける「名札」</h2>
+    <p>気づきましたか？ さっきのコードに <code class="inline">key={date}</code> がありました。<strong>並べるときは、各部品に <code class="inline">key</code>（名札）を必ず付けます。</strong></p>
+    <div class="big-point">
+      <span class="accent2">key</span> ＝ 一個ずつを見分けるための<span class="accent">名札</span>。<br />
+      同じものが重複しない値を付ける。
+    </div>
+    <p class="lead">なぜ必要？ — React が「どれがどれ」を見分けるため。</p>
+    <div class="callout">
+      <span class="k">たとえ話</span><br />
+      クラスの名簿で全員「名無し」だと、1人転校しても<strong>誰が抜けたか分からない</strong>。
+      名札（key）を付けておけば、React は「7/4 のカードはそのまま、7/5 だけ満員に変わった」と<strong>正確に・効率よく</strong>画面を更新できます。
+    </div>
+    <div class="callout warn">
+      <span class="k">key に選ぶもの</span><br />
+      日付やID など「<strong>重複しない値</strong>」を使う。上の例では日付そのもの（<code class="inline">key={date}</code>）が名札になっています。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">5</span>あなたのアプリでは（実物）</h2>
+    <p>予約画面の「時刻表」は、まさに map で作られています👇（少し形は違いますが考え方は同じ）</p>
+    <div class="filelabel">src/app/reserve/[date]/page.tsx</div>
+<pre><code>{Array.from({ length: SLOTS_PER_DAY }, (_, i) =&gt; i).<span class="fn">map</span>((i) =&gt; (
+  <span class="tagc">&lt;button</span> key={i} onClick={() =&gt; onTapSlot(i)}<span class="tagc">&gt;</span>
+    {minToHHMM(...)} 〜 {minToHHMM(...)}
+  <span class="tagc">&lt;/button&gt;</span>
+))}</code></pre>
+    <ul>
+      <li>「30分スロットの番号（0,1,2,…）」という配列を作り、<code class="inline">.map()</code> でボタンに変換</li>
+      <li><code class="inline">key={i}</code> …… スロット番号を名札に（重複しないのでOK）</li>
+      <li>これで「9:00〜9:30」「9:30〜10:00」…と時刻ボタンが<strong>自動でずらっと並ぶ</strong></li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">!</span>よくあるつまずき</h2>
+    <div class="callout trap">
+      <span class="k">key を付け忘れる</span><br />
+      <code class="inline">{list.map(x =&gt; &lt;li&gt;{x}&lt;/li&gt;)}</code> のように key なしで並べると、
+      「key が無いよ」と<strong>警告</strong>が出ます。表示はされますが、後でリストが変わったとき<strong>表示が崩れるバグ</strong>の原因に。必ず付けましょう。
+    </div>
+    <div class="callout warn">
+      <span class="k">JSX の中では for 文が書けない</span><br />
+      「繰り返し」は <code class="inline">for</code> ではなく <code class="inline">.map()</code> で書く、が React の作法です。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">★</span>用語ミニ辞典</h2>
+    <dl class="glossary">
+      <dt>配列</dt>
+      <dd>データを順番に並べて入れる箱。<code class="inline">["7/3", "7/4", "7/5"]</code> のような形。</dd>
+      <dt>.map()（マップ）</dt>
+      <dd>配列の1個ずつを<strong>別のものに作り変えて、新しい配列を返す</strong>道具。React では「データ→部品」に使う。</dd>
+      <dt>key（キー）</dt>
+      <dd>並べた部品1個ずつに付ける<strong>名札</strong>。React が要素を見分けるために必要。重複しない値にする。</dd>
+    </dl>
+  </section>
+
+  <section class="summary">
+    <h2><span class="step-badge">✓</span>今日のまとめ</h2>
+    <ul>
+      <li>同じ形の繰り返しは、手書きせず <strong>配列を <code class="inline">.map()</code> で部品に変換</strong>して並べる。</li>
+      <li><code class="inline">{dates.map((date) =&gt; &lt;DayCard key={date} date={date} /&gt;)}</code> が基本形。</li>
+      <li>並べた部品には <strong><code class="inline">key</code>（名札）を必ず付ける</strong>。重複しない値で。</li>
+      <li>データが増えれば表示も<strong>自動で増える</strong>。あなたのアプリの時刻表もこれ。</li>
+    </ul>
+  </section>
+
+  <footer>React 超入門 #05 ・ 次回 #06 は「状況で表示を出し分ける（条件付き表示）」＝ 空きは◎・満員は×、のような切り替えを。</footer>
+
+</div>
+</body>
+</html>
