@@ -1,0 +1,149 @@
+# =============================================================================
+# Ghostty 設定 — 自分仕様 (based on: https://zenn.dev/fendo181/articles/2b75b12c80fe06)
+#
+# 記述形式: key = value （1行1設定 / # 以降はコメント）
+# 設定を開く   : macOS は ⌘ + , / メニュー [Ghostty] → [Settings…]
+# 再読み込み   : ⌘ + Shift + , （リロード後すぐ反映される）
+# テーマ一覧   : ターミナルで `ghostty +list-themes`
+# 全設定の確認 : `ghostty +show-config --default --docs | less`
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# フォント
+# -----------------------------------------------------------------------------
+# アイコン(グリフ)込みで表示したいので Nerd Font を使う（記事準拠: BlexMono）。
+# 未インストールなら:  macOS -> `brew install --cask font-blex-mono-nerd-font`
+# 別のフォントに変えたい場合は `ghostty +list-fonts` で名前を確認して差し替える。
+#   候補: "JetBrainsMono Nerd Font" / "HackGen Console NF" / "Maple Mono NF"
+font-family = "BlexMono Nerd Font Mono"
+# 太字/斜体だけ別フォントにしたい場合は下記を有効化（未指定なら family から自動）
+# font-family-bold = "BlexMono Nerd Font Mono"
+# font-family-italic = "Maple Mono Italic"
+font-size = 16
+# 行間・文字間を少しゆったりさせて可読性を上げる（好みで 0 に戻してOK）
+adjust-cell-height = 12%
+# リガチャ（=> や != の合字）を切りたいときは calt/liga を無効化
+# font-feature = -calt
+# font-feature = -liga
+
+# 日本語(全角)の描画が崩れる場合の保険。CJK 用フォントを明示したいとき:
+# font-family = "HackGen Console NF"
+
+# -----------------------------------------------------------------------------
+# テーマ / 配色
+# -----------------------------------------------------------------------------
+# `ghostty +list-themes` でプレビューしながら選べる。好みの名前に差し替える。
+# ライト/ダークを OS 追従にしたい場合は 1 行で両方指定できる:
+#   theme = light:catppuccin-latte,dark:catppuccin-mocha
+theme = catppuccin-mocha
+
+# テーマの色を一部だけ上書きしたいとき（例: 背景を少し暗く）
+# background = 11111b
+# foreground = cdd6f4
+# 選択範囲の色
+# selection-background = 313244
+# selection-foreground = cdd6f4
+
+# -----------------------------------------------------------------------------
+# ウィンドウ / 見た目
+# -----------------------------------------------------------------------------
+# 余白（padding）を付けて端が詰まらないようにする
+window-padding-x = 12
+window-padding-y = 12
+# ペイン分割やタブが増えても padding を均等に
+window-padding-balance = true
+
+# 背景の透過とすりガラス（macOS のみ blur が効く）。透けすぎは可読性を下げるので控えめに。
+background-opacity = 0.96
+background-blur = true
+
+# 起動時のウィンドウサイズ（列 x 行）。0 なら OS 任せ。
+window-height = 40
+window-width = 132
+
+# タイトルバー表示。macOS でネイティブ感を出すなら transparent、非表示なら false
+# macos-titlebar-style = transparent
+# window-decoration = true
+
+# -----------------------------------------------------------------------------
+# カーソル
+# -----------------------------------------------------------------------------
+cursor-style = block
+cursor-style-blink = true
+# フォーカスが外れたら中抜きカーソルにする（どのペインが有効か分かりやすい）
+# shell-integration が有効だと vi の挿入モードでカーソル形状が変わる
+
+# -----------------------------------------------------------------------------
+# スクロール / 挙動
+# -----------------------------------------------------------------------------
+scrollback-limit = 100000
+# クリックで URL を開く（Nerd Font のリンクにも対応）
+# コピー時に自動で改行トリム
+copy-on-select = clipboard
+# ベル（音/視覚通知）はオフにしてノイズを減らす
+# bell = false
+
+# シェル統合: カレントディレクトリ引き継ぎ・タイトル自動更新・sudo 対応など
+shell-integration = detect
+shell-integration-features = cursor,sudo,title
+
+# -----------------------------------------------------------------------------
+# macOS 固有
+# -----------------------------------------------------------------------------
+# Option キーを Alt として扱う（tmux/vim の Alt バインドや、⌥+← の単語移動用）
+macos-option-as-alt = true
+# 非アクティブ時にウィンドウを少し暗くする（複数ウィンドウ運用で有効）
+# macos-window-shadow = true
+
+# -----------------------------------------------------------------------------
+# キーバインド（自分仕様）
+# -----------------------------------------------------------------------------
+# 書式: keybind = <修飾子>+<キー>=<アクション>
+# 一覧は `ghostty +list-actions` を参照。
+# ※ Linux では super を ctrl に読み替えると馴染む（下部の Linux 例を参照）。
+
+# --- ペイン分割（VS Code / tmux 風） ---
+keybind = super+d=new_split:right
+keybind = super+shift+d=new_split:down
+keybind = super+w=close_surface
+
+# --- 分割ペイン間の移動（⌘ + hjkl / vim 風）---
+keybind = super+h=goto_split:left
+keybind = super+j=goto_split:bottom
+keybind = super+k=goto_split:top
+keybind = super+l=goto_split:right
+
+# --- 分割ペインのリサイズ（⌘ + Ctrl + hjkl）---
+keybind = super+ctrl+h=resize_split:left,40
+keybind = super+ctrl+j=resize_split:down,40
+keybind = super+ctrl+k=resize_split:up,40
+keybind = super+ctrl+l=resize_split:right,40
+# 均等化
+keybind = super+ctrl+equal=equalize_splits
+
+# --- タブ ---
+keybind = super+t=new_tab
+keybind = super+shift+bracket_left=previous_tab
+keybind = super+shift+bracket_right=next_tab
+
+# --- フォントサイズ ---
+keybind = super+plus=increase_font_size:1
+keybind = super+minus=decrease_font_size:1
+keybind = super+zero=reset_font_size
+
+# --- ユーティリティ ---
+# 画面クリア（スクロールバックも消す）
+keybind = super+shift+k=clear_screen
+# 設定リロード
+keybind = super+shift+comma=reload_config
+# クイックターミナル（画面上部からスッと降りてくる。macOS 推奨）
+keybind = global:super+grave_accent=toggle_quick_terminal
+
+# -----------------------------------------------------------------------------
+# Linux で使う場合の差分（必要ならコメントを外し、上の super 系を調整）
+# -----------------------------------------------------------------------------
+# gtk-single-instance = true
+# window-decoration = true
+# 例: 分割を Ctrl+Alt 系に寄せる
+# keybind = ctrl+alt+d=new_split:right
+# keybind = ctrl+alt+shift+d=new_split:down
