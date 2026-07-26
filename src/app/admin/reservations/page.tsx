@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from "react";
 import {
+  adminCheckin,
   adminListReservations,
   adminMarkNoShow,
   adminMarkPaid
@@ -45,6 +46,17 @@ export default function AdminReservations() {
     if (!method) return;
     try {
       await adminMarkPaid(getAdminToken(), id, method as "CASH" | "PAYPAY" | "BANK_TRANSFER");
+      await load();
+    } catch (err) {
+      alert(err instanceof Error ? err.message : String(err));
+    }
+  }
+
+  /** 受付（チェックイン）。QR が読めない端末でも一覧からタップで完了できる。 */
+  async function checkin(r: Reservation) {
+    if (!confirm(`${r.display_number}（${r.group_name}）を受付しますか？`)) return;
+    try {
+      await adminCheckin(getAdminToken(), r.id);
       await load();
     } catch (err) {
       alert(err instanceof Error ? err.message : String(err));
@@ -110,24 +122,38 @@ export default function AdminReservations() {
           <div className="text-sm mt-1">
             {formatYen(Number(r.total_amount))}（{r.payment_status}）
           </div>
+          {r.checked_in_at && (
+            <div className="text-xs text-muted mt-1">受付済み</div>
+          )}
           {r.status === "CONFIRMED" && (
-            <div className="flex gap-2 mt-2">
-              {r.payment_status !== "PAID" && (
+            <div className="mt-2">
+              {!r.checked_in_at && (
                 <button
                   type="button"
-                  className="btn btn-primary flex-1"
-                  onClick={() => markPaid(r.id)}
+                  className="btn btn-primary w-full mb-2"
+                  onClick={() => checkin(r)}
                 >
-                  支払い済み
+                  受付する（チェックイン）
                 </button>
               )}
-              <button
-                type="button"
-                className="btn btn-ghost flex-1"
-                onClick={() => markNoShow(r.id)}
-              >
-                No-Show
-              </button>
+              <div className="flex gap-2">
+                {r.payment_status !== "PAID" && (
+                  <button
+                    type="button"
+                    className="btn btn-ghost flex-1"
+                    onClick={() => markPaid(r.id)}
+                  >
+                    支払い済み
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="btn btn-ghost flex-1"
+                  onClick={() => markNoShow(r.id)}
+                >
+                  No-Show
+                </button>
+              </div>
             </div>
           )}
         </article>

@@ -124,7 +124,8 @@ export default function AdminCheckin() {
   return (
     <div>
       <p className="text-sm text-muted mb-2">
-        予約 QR をカメラにかざしてください。
+        予約 QR をカメラにかざしてください。カメラが使えない端末（iPhone など）では、
+        下の予約番号入力、または「予約」タブの一覧から受付できます。
       </p>
 
       <div
@@ -151,12 +152,14 @@ export default function AdminCheckin() {
       )}
 
       <label className="field">
-        手動で予約 ID を入力
+        予約番号で受付（QR が読めないとき）
         <input
           type="text"
           value={manual}
           onChange={(e) => setManual(e.target.value)}
-          placeholder="reservation_id"
+          placeholder="R-2026-06-26-d1f8"
+          autoCapitalize="none"
+          autoCorrect="off"
         />
       </label>
       <button

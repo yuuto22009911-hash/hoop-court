@@ -446,7 +446,13 @@ function demoExec(action: string, p: Record<string, unknown>) {
     }
     case "admin.checkin": {
       const { reservation_id } = p as { reservation_id: string };
-      const target = stored.find((r) => r.id === reservation_id);
+      // GAS 同様、予約ID と 予約番号（R-...）のどちらでも引ける
+      const key = String(reservation_id || "").trim();
+      const target =
+        stored.find((r) => r.id === key) ??
+        stored.find(
+          (r) => r.display_number.trim().toLowerCase() === key.toLowerCase()
+        );
       if (!target) throw new GasError("not found", "NOT_FOUND");
       if (target.status === "COMPLETED" || target.checked_in_at) {
         throw new GasError("already checked in", "ALREADY_CHECKED_IN");

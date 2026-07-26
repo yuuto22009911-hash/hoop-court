@@ -299,6 +299,58 @@ function nowIso_() { return jstIso_(new Date()); }
 function todayYmd_() { return jstYmd_(new Date()); }
 function uuid_() { return Utilities.getUuid(); }
 
+// ====================== 表示フォーマット ======================
+var DOW_JA = ["日", "月", "火", "水", "木", "金", "土"];
+/** "6月26日(金) 10:00〜11:00"（TZ非依存に ISO 文字列から組み立てる） */
+function formatRangeJa_(startsIso, endsIso) {
+  var ymd = String(startsIso).slice(0, 10);
+  var mm = parseInt(ymd.slice(5, 7), 10);
+  var dd = parseInt(ymd.slice(8, 10), 10);
+  return mm + "月" + dd + "日(" + DOW_JA[ymdToDow_(ymd)] + ") " +
+    String(startsIso).slice(11, 16) + "〜" + String(endsIso).slice(11, 16);
+}
+/** 1210 → "¥1,210" */
+function yen_(n) {
+  var v = Math.round(Number(n) || 0);
+  return "¥" + String(v).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// ====================== LINE メッセージ送信 ======================
+/**
+ * 個別プッシュ送信。LINE_MESSAGING_TOKEN 未設定なら送らず false を返す（例外にしない）。
+ * 友だち未追加のユーザーには LINE 側で 403 になるため、失敗も false で返す。
+ */
+function linePush_(toUserId, text) {
+  if (!toUserId || !text) return false;
+  var token = props_("LINE_MESSAGING_TOKEN");
+  if (!token) return false;
+  var res = UrlFetchApp.fetch("https://api.line.me/v2/bot/message/push", {
+    method: "post",
+    contentType: "application/json",
+    headers: { Authorization: "Bearer " + token },
+    payload: JSON.stringify({ to: String(toUserId), messages: [{ type: "text", text: String(text) }] }),
+    muteHttpExceptions: true
+  });
+  return res.getResponseCode() < 300;
+}
+/** 予約確定時にお客様へ送るメッセージ本文 */
+function confirmMessage_(displayNumber, mode, startsIso, endsIso, amount, headcount) {
+  var lines = [
+    "【ご予約が確定しました】",
+    "",
+    "予約番号: " + displayNumber,
+    "種別: " + (mode === "FREE" ? "バスケフリーゴール" : "貸切（コート）"),
+    "日時: " + formatRangeJa_(startsIso, endsIso)
+  ];
+  if (mode === "FREE" && headcount) lines.push("人数: " + headcount + " 名");
+  lines.push("金額: " + yen_(amount) + "（当日現地払い）");
+  lines.push("");
+  lines.push("当日はマイページの QR コードをご提示ください。");
+  lines.push("※ご予約時間を過ぎると30分ごとの追加料金が発生します。");
+  lines.push("※当日のご予約・変更はカウンターのみ（要相談）です。");
+  return lines.join("\n");
+}
+
 // ====================== Public: courts / availability ======================
 function listCourts_() {
   return readTable_("Courts")
@@ -425,6 +477,7 @@ function reservationsCreate_(idToken, p) {
 
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
+  var result, notifyText;
   try {
     var confirmed = readTable_("Reservations").filter(function (r) {
       return String(r.court_id) === court_id && String(r.status) === "CONFIRMED";
@@ -470,10 +523,18 @@ function reservationsCreate_(idToken, p) {
       note: p.note || "", status: "CONFIRMED", total_amount: amount, payment_status: "UNPAID",
       paid_at: "", checked_in_at: "", created_at: now, updated_at: now, canceled_at: ""
     });
-    return { reservation_id: id, display_number: display_number, amount: amount };
+    result = { reservation_id: id, display_number: display_number, amount: amount };
+    notifyText = confirmMessage_(display_number, mode, jstIso_(start), jstIso_(end), amount, p.headcount);
   } finally {
     lock.releaseLock();
   }
+  // 予約確定通知（ロック解放後に送る。通知失敗で予約を失敗させない）
+  try {
+    linePush_(line.sub, notifyText);
+  } catch (err) {
+    // 友だち未追加・トークン未設定などは想定内。予約は成立済みなので無視する。
+  }
+  return result;
 }
 
 function toReservation_(r) {
@@ -533,9 +594,20 @@ function adminList_(idToken, p) {
   rows.sort(function (a, b) { return new Date(b.starts_at) - new Date(a.starts_at); });
   return { reservations: rows };
 }
+/**
+ * 予約を1件特定する。QR の reservation_id だけでなく、受付で読み上げやすい
+ * 予約番号（例 R-2026-06-26-d1f8）でも引けるようにしている（大文字小文字・前後空白は無視）。
+ */
 function findReservationRow_(rid) {
+  var key = String(rid || "").trim();
+  if (!key) return null;
+  var lower = key.toLowerCase();
   var rows = readTable_("Reservations");
-  for (var i = 0; i < rows.length; i++) if (String(rows[i].id) === String(rid)) return rows[i];
+  var i;
+  for (i = 0; i < rows.length; i++) if (String(rows[i].id) === key) return rows[i];
+  for (i = 0; i < rows.length; i++) {
+    if (String(rows[i].display_number).trim().toLowerCase() === lower) return rows[i];
+  }
   return null;
 }
 function adminMarkPaid_(idToken, p) {

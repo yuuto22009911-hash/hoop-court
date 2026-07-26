@@ -19,7 +19,10 @@
 | `admin.login` | 不要 | ID/パスワードでログイン → セッショントークン発行（LINE不要） |
 | `admin.session` | セッション | トークンの有効性確認 |
 | `admin.logout` | セッション | セッション破棄 |
-| `admin.*` | 管理者 | 予約一覧/入金/No-Show/QR入場/枠/一斉配信/売上 |
+| `admin.*` | 管理者 | 予約一覧/入金/No-Show/受付/枠/一斉配信/売上 |
+
+> `admin.checkin` は QR に入っている予約IDだけでなく、**予約番号（`R-2026-06-26-d1f8`）でも受付**できる
+> （iPhone など QR スキャン非対応端末での運用対策）。
 
 > 管理系 API の認証は2系統。**ID/パスワードのセッショントークン**（`/admin/login`、LINE不要）
 > または **LINE userId の許可リスト**（`ADMIN_USER_IDS` / `Admins` シート）のいずれかで通る。
@@ -41,7 +44,7 @@
 | キー | 必須 | 値 |
 | --- | --- | --- |
 | `LINE_LOGIN_CHANNEL_ID` | ✅ | LINE ログインチャネルの **Channel ID**（IDトークン検証用） |
-| `LINE_MESSAGING_TOKEN` | 任意 | Messaging API チャネルアクセストークン（`admin.broadcast` 用） |
+| `LINE_MESSAGING_TOKEN` | 推奨 | Messaging API チャネルアクセストークン（**予約確定通知**・`admin.broadcast` 用） |
 | `ADMIN_USER_IDS` | 任意 | 管理者の LINE userId をカンマ区切り（`Admins` シートでも可） |
 | `SPREADSHEET_ID` | 任意 | スタンドアロン時の対象スプレッドシートID |
 | `ADMIN_LOGIN_USER` | 一時 | 管理ログインのユーザーID（`setAdminLogin()` 実行用。下記参照） |
@@ -63,6 +66,15 @@ GitHub → リポジトリ Settings → Secrets and variables → Actions → **
 - `NEXT_PUBLIC_DEMO_MODE` = `0`
 
 → `main` へマージ（または再デプロイ）で本番反映。
+
+## 予約確定通知（LINE プッシュ）
+
+`reservations.create` の成功後に、予約したお客様へ LINE で確認メッセージを送る。
+
+- 送信内容: 予約番号 / 種別 / 日時 / （フリーは人数）/ 金額 / QR 提示・超過料金の注意
+- **`LINE_MESSAGING_TOKEN` が未設定なら送信をスキップする**（予約自体は成立する）
+- 友だち未追加のお客様には LINE 側で拒否されるが、**通知の失敗で予約は失敗しない**設計
+- 送信はスプレッドシートのロックを解放した後に行うため、同時予約の待ち時間に影響しない
 
 ## 管理ログイン（ID/パスワード・LINE不要）
 
