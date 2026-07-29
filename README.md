@@ -93,7 +93,14 @@ npm run build
 `src/lib/gas.ts` の action 契約に準拠し、料金は `src/lib/pricing.ts` と厳密一致。
 デプロイ手順は [`apps-script/README.md`](apps-script/README.md) を参照。
 
+> ⚠️ **作業前に「どれが本番の Apps Script か」を必ず確認すること。** 過去に別世代のデプロイを
+> 参照して管理画面がログイン不能になった事故がある。識別方法・再デプロイの鉄則・影響範囲は
+> [`apps-script/README.md`](apps-script/README.md) の冒頭を参照。
+
 ## 管理画面 (`/admin`)
+
+> 📌 管理画面は **`himawari-site`（Astro）側に統一済み**。本リポジトリの `/admin` は
+> 切り替え確認後に廃止予定で、現在は参照用に残している。両者は同じ GAS を参照する。
 
 ダッシュボード / 予約一覧 / QRチェックイン / 枠カレンダー / 一斉配信。認証は2系統:
 
