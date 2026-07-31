@@ -318,3 +318,24 @@ label.field textarea:focus-visible {
 .wday-header .sat {
   color: #4a6fa5;
 }
+
+/* お知らせポップアップ（PaymentNotice） */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.45);
+}
+.modal-card {
+  width: 100%;
+  max-width: 360px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px;
+  background: var(--cream);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
