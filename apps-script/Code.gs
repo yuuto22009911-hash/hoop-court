@@ -12,6 +12,8 @@
  *   1. このスクリプトを Google スプレッドシートに紐付け（コンテナバインド）するか、
  *      スタンドアロンで作り Script Property SPREADSHEET_ID を設定。
  *   2. 関数 setup() を一度実行 → 各シート作成＋ハーフコート1面を投入。
+ *      既存のスプレッドシートに後から列を足す場合は 関数 migrateSheets() を一度実行
+ *      （Reservations の末尾に source / payment_method / phone / cancel_reason / canceled_by を追加）。
  *   3. Script Properties を設定:
  *        LINE_LOGIN_CHANNEL_ID … LINE ログインチャネルの Channel ID（IDトークン検証用・必須）
  *        LINE_MESSAGING_TOKEN  … Messaging API のチャネルアクセストークン（一斉配信用・任意）
@@ -119,6 +121,11 @@ function handle_(action, p, idToken) {
     case "reservations.create": return reservationsCreate_(idToken, p);
     case "reservations.listMine": return reservationsListMine_(idToken);
     case "reservations.cancel": return reservationsCancel_(idToken, p);
+
+    case "admin.reservations.create": return adminReservationsCreate_(idToken, p);
+    case "admin.reservations.cancel": return adminReservationsCancel_(idToken, p);
+    case "admin.slots.list": return adminSlotsList_(idToken, p);
+    case "admin.slots.set": return adminSlotsSet_(idToken, p);
 
     case "admin.login": return adminLogin_(p);
     case "admin.logout": return adminLogout_(idToken);
@@ -276,6 +283,23 @@ function appendRow_(name, obj) {
   var row = hs.map(function (h) { return obj[h] !== undefined && obj[h] !== null ? obj[h] : ""; });
   sheet_(name).appendRow(row);
 }
+/**
+ * Reservations に後から足した列。物理的にシートへ追加されていないと
+ * appendRow_ / updateRow_ がヘッダ名で解決できず、値を黙って捨ててしまう。
+ * 追加は migrateSheets()（内部的に ensureReservationColumns_()）で行う。
+ */
+var RESERVATION_EXTRA_COLUMNS = ["source", "payment_method", "phone", "cancel_reason", "canceled_by"];
+/** 指定した列が Reservations に存在しなければ CONFIG エラー（黙って捨てるのを防ぐ） */
+function requireReservationColumns_(names) {
+  var hs = headers_("Reservations").map(String);
+  var missing = names.filter(function (n) { return hs.indexOf(n) < 0; });
+  if (missing.length) {
+    throw fail_(
+      "Reservations シートに列がありません: " + missing.join(", ") +
+      "（Apps Script エディタから migrateSheets() を1回実行してください）", "CONFIG"
+    );
+  }
+}
 function updateRow_(name, _row, obj) {
   var sh = sheet_(name);
   var hs = headers_(name);
@@ -347,7 +371,8 @@ function confirmMessage_(displayNumber, mode, startsIso, endsIso, amount, headco
   lines.push("");
   lines.push("当日はマイページの QR コードをご提示ください。");
   lines.push("※ご予約時間を過ぎると30分ごとの追加料金が発生します。");
-  lines.push("※当日のご予約・変更はカウンターのみ（要相談）です。");
+  lines.push("※当日のご予約も開始時刻前までは承ります（過去の時間帯は不可）。");
+  lines.push("※ご予約内容の変更はカウンターのみ（要相談）です。");
   return lines.join("\n");
 }
 
@@ -382,6 +407,9 @@ function availabilityRange_(p) {
     return [new Date(s.starts_at).getTime(), new Date(s.ends_at).getTime()];
   });
   var SLOTS_PER_DAY = (CLOSE_HOUR - OPEN_HOUR) * 2;
+  // 開始時刻が現在より過去の枠は予約できない（createReservationCore_ の判定と同一基準）。
+  // 唯一の可用性ソースなので、ここで潰せば LIFF・管理画面の双方に一様に効く。
+  var nowMs = Date.now();
   var slots = [];
   var ymd = fromYmd;
   var guard = 0;
@@ -393,7 +421,7 @@ function availabilityRange_(p) {
       var eIso = ymd + "T" + pad2_(Math.floor(eMin / 60)) + ":" + pad2_(eMin % 60) + ":00+09:00";
       var st = new Date(sIso).getTime();
       var en = new Date(eIso).getTime();
-      var blocked = overlapsAny_(resRanges, st, en) || overlapsAny_(ovrRanges, st, en);
+      var blocked = overlapsAny_(resRanges, st, en) || overlapsAny_(ovrRanges, st, en) || st < nowMs;
       slots.push({ slot_id: court_id + "-" + sIso, starts_at: sIso, ends_at: eIso, is_available: !blocked });
     }
     ymd = jstYmd_(new Date(new Date(ymd + "T12:00:00+09:00").getTime() + 24 * 3600 * 1000));
@@ -449,25 +477,46 @@ function authRegister_(idToken, p) {
   return { registered: true };
 }
 
-// ====================== Member: reservations ======================
-function reservationsCreate_(idToken, p) {
-  var line = verifyLineUser_(idToken);
-  var user = findUserByLineId_(line.sub);
-  if (!user) throw fail_("プロフィール登録が必要です。", "UNREGISTERED");
-
+// ====================== 予約作成の共通コア ======================
+/**
+ * 予約1件を検証・採番して Reservations に追記する共通処理。
+ * LIFF（reservations.create）と管理版（admin.reservations.create）の双方がここを通る。
+ * 重複判定・人数判定・金額算出を二重実装しないための唯一の入口。
+ *
+ * opts = {
+ *   p:              リクエスト payload（court_id / mode / starts_at / ends_at / … ）
+ *   user_id:        Users.id、またはカウンター受付の固定値 "WALK_IN"
+ *   source:         "" = LIFF 経由 / "manual" = 管理画面から作成
+ *   allowPast:      true なら過去時刻の予約を許可（カウンター受付は事後入力になりがち）
+ *   phone:          電話番号（任意・phone 列へ）
+ *   payment_method: "CASH" | "PAYPAY" | "BANK_TRANSFER"（指定時はその場で PAID にする）
+ * }
+ * 戻り値: { reservation_id, display_number, amount, mode, starts_at, ends_at, headcount, payment_status }
+ */
+function createReservationCore_(opts) {
+  var p = (opts && opts.p) || {};
   var mode = p.mode || "CHARTER";
+  if (!p.starts_at || !p.ends_at) throw fail_("開始・終了時刻は必須です。", "VALIDATION");
+  var startDate = new Date(p.starts_at);
+  var endDate = new Date(p.ends_at);
+  if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+    throw fail_("日時の形式が不正です。", "VALIDATION");
+  }
   var ymd = String(p.starts_at).slice(0, 10);
   var startMin = hhmmToMin_(p.starts_at);
   var endMin = hhmmToMin_(p.ends_at);
   var durationMin = endMin - startMin;
-  var start = new Date(p.starts_at);
-  var end = new Date(p.ends_at);
+  var start = startDate;
+  var end = endDate;
 
   if (durationMin <= 0) throw fail_("終了時刻は開始時刻より後にしてください。", "P0002");
   if (startMin < OPEN_HOUR * 60 || endMin > CLOSE_HOUR * 60) {
     throw fail_("予約は " + OPEN_HOUR + ":00〜" + CLOSE_HOUR + ":00 の範囲で指定してください。", "P0004");
   }
-  if (ymd <= todayYmd_()) throw fail_("当日のご予約はカウンターのみ（要相談）です。", "P0005");
+  // 当日でも開始時刻前なら予約できる。過去の時間帯のみ拒否（availabilityRange_ と同一基準）。
+  if (!opts.allowPast && start.getTime() < Date.now()) {
+    throw fail_("過去の時間帯はご予約いただけません。", "P0005");
+  }
 
   var court_id = String(p.court_id || "");
   var court = null;
@@ -475,9 +524,11 @@ function reservationsCreate_(idToken, p) {
   for (var i = 0; i < courts.length; i++) if (courts[i].id === court_id) court = courts[i];
   if (!court) throw fail_("コートが見つかりません。", "P0010");
 
+  var payment_method = String(opts.payment_method || "");
+  var payment_status = payment_method ? "PAID" : "UNPAID";
+
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
-  var result, notifyText;
   try {
     var confirmed = readTable_("Reservations").filter(function (r) {
       return String(r.court_id) === court_id && String(r.status) === "CONFIRMED";
@@ -517,24 +568,47 @@ function reservationsCreate_(idToken, p) {
     var display_number = "R-" + ymd + "-" + id.slice(0, 4);
     var now = nowIso_();
     appendRow_("Reservations", {
-      id: id, display_number: display_number, user_id: user.id, court_id: court_id, mode: mode,
+      id: id, display_number: display_number, user_id: String(opts.user_id || ""), court_id: court_id, mode: mode,
       starts_at: jstIso_(start), ends_at: jstIso_(end), sides: 1, purpose: p.purpose || "",
       group_name: p.group_name || "", rep_name: p.rep_name || "", headcount: p.headcount || "",
-      note: p.note || "", status: "CONFIRMED", total_amount: amount, payment_status: "UNPAID",
-      paid_at: "", checked_in_at: "", created_at: now, updated_at: now, canceled_at: ""
+      note: p.note || "", status: "CONFIRMED", total_amount: amount, payment_status: payment_status,
+      paid_at: payment_method ? now : "", checked_in_at: "", created_at: now, updated_at: now, canceled_at: "",
+      source: String(opts.source || ""), payment_method: payment_method, phone: String(opts.phone || ""),
+      cancel_reason: "", canceled_by: ""
     });
-    result = { reservation_id: id, display_number: display_number, amount: amount };
-    notifyText = confirmMessage_(display_number, mode, jstIso_(start), jstIso_(end), amount, p.headcount);
+    return {
+      reservation_id: id, display_number: display_number, amount: amount, mode: mode,
+      starts_at: jstIso_(start), ends_at: jstIso_(end), headcount: p.headcount || "",
+      payment_status: payment_status
+    };
   } finally {
     lock.releaseLock();
   }
+}
+
+// ====================== Member: reservations ======================
+function reservationsCreate_(idToken, p) {
+  var line = verifyLineUser_(idToken);
+  var user = findUserByLineId_(line.sub);
+  if (!user) throw fail_("プロフィール登録が必要です。", "UNREGISTERED");
+
+  var created = createReservationCore_({
+    p: p, user_id: user.id, source: "", allowPast: false, phone: "", payment_method: ""
+  });
+
   // 予約確定通知（ロック解放後に送る。通知失敗で予約を失敗させない）
   try {
-    linePush_(line.sub, notifyText);
+    linePush_(line.sub, confirmMessage_(
+      created.display_number, created.mode, created.starts_at, created.ends_at, created.amount, p.headcount
+    ));
   } catch (err) {
     // 友だち未追加・トークン未設定などは想定内。予約は成立済みなので無視する。
   }
-  return result;
+  return {
+    reservation_id: created.reservation_id,
+    display_number: created.display_number,
+    amount: created.amount
+  };
 }
 
 function toReservation_(r) {
@@ -548,7 +622,13 @@ function toReservation_(r) {
     payment_status: String(r.payment_status || "UNPAID"), paid_at: r.paid_at ? String(r.paid_at) : undefined,
     checked_in_at: r.checked_in_at ? String(r.checked_in_at) : undefined,
     created_at: String(r.created_at || ""), updated_at: String(r.updated_at || ""),
-    canceled_at: r.canceled_at ? String(r.canceled_at) : undefined
+    canceled_at: r.canceled_at ? String(r.canceled_at) : undefined,
+    // 後から末尾に追加した列（列が無い既存シートでは空文字になる）
+    source: r.source ? String(r.source) : "",
+    payment_method: r.payment_method ? String(r.payment_method) : "",
+    phone: r.phone ? String(r.phone) : "",
+    cancel_reason: r.cancel_reason ? String(r.cancel_reason) : "",
+    canceled_by: r.canceled_by ? String(r.canceled_by) : ""
   };
 }
 function reservationsListMine_(idToken) {
@@ -634,6 +714,81 @@ function adminCheckin_(idToken, p) {
   updateRow_("Reservations", t._row, { status: "COMPLETED", checked_in_at: now, updated_at: now });
   return { checked_in_at: now, display_number: String(t.display_number), group_name: String(t.group_name || "") };
 }
+/** キャンセル実行者の記録用。認証経路が分かるよう系統を前置きする。 */
+function adminActorLabel_(a) {
+  if (a && a.via === "password") return "admin:" + String(a.name || "");
+  return "line:" + String((a && a.sub) || "");
+}
+/**
+ * 管理者による予約キャンセル。
+ * - reservation_id は内部ID・予約番号のどちらでも可（findReservationRow_ を再利用）
+ * - すでに CANCELED なら冪等成功（already: true）。二重クリックで運用を止めない
+ * - COMPLETED / NO_SHOW も許可（受付後の返金対応があるため）。prev_status を返す
+ * - LINE 通知は送らない（会員セルフキャンセルと挙動を揃える）
+ */
+function adminReservationsCancel_(idToken, p) {
+  var admin = requireAdmin_(idToken);
+  var rid = String((p && p.reservation_id) || "").trim();
+  if (!rid) throw fail_("reservation_id は必須です。", "VALIDATION");
+  requireReservationColumns_(["cancel_reason", "canceled_by"]);
+  var t = findReservationRow_(rid);
+  if (!t) throw fail_("予約が見つかりません。", "NOT_FOUND");
+
+  var prev_status = String(t.status || "");
+  if (prev_status === "CANCELED") {
+    return {
+      status: "CANCELED",
+      canceled_at: t.canceled_at ? String(t.canceled_at) : "",
+      already: true,
+      prev_status: prev_status,
+      display_number: String(t.display_number || "")
+    };
+  }
+  var now = nowIso_();
+  updateRow_("Reservations", t._row, {
+    status: "CANCELED", canceled_at: now, updated_at: now,
+    cancel_reason: String((p && p.reason) || ""), canceled_by: adminActorLabel_(admin)
+  });
+  return {
+    status: "CANCELED", canceled_at: now, already: false,
+    prev_status: prev_status, display_number: String(t.display_number || "")
+  };
+}
+var PAYMENT_METHODS = ["CASH", "PAYPAY", "BANK_TRANSFER"];
+/**
+ * カウンター受付（代理予約）。LINE 未登録の来店客を管理者が登録する。
+ * 検証・金額算出・排他制御は createReservationCore_ に集約（LIFF 版と同じ経路）。
+ * payment_method が指定された場合はその場で PAID とし paid_at も記録する。
+ */
+function adminReservationsCreate_(idToken, p) {
+  requireAdmin_(idToken);
+  p = p || {};
+  var group_name = String(p.group_name || "").trim();
+  if (!group_name) throw fail_("団体名（お名前）は必須です。", "VALIDATION");
+  var payment_method = String(p.payment_method || "").trim();
+  if (payment_method && PAYMENT_METHODS.indexOf(payment_method) < 0) {
+    throw fail_("payment_method は " + PAYMENT_METHODS.join(" / ") + " のいずれかです。", "VALIDATION");
+  }
+  requireReservationColumns_(["source", "payment_method", "phone"]);
+  var created = createReservationCore_({
+    p: {
+      court_id: p.court_id, mode: p.mode || "CHARTER", starts_at: p.starts_at, ends_at: p.ends_at,
+      purpose: p.purpose || "", group_name: group_name, rep_name: p.rep_name || "",
+      headcount: p.headcount, note: p.note || ""
+    },
+    user_id: "WALK_IN",     // Users にゲスト行を作らない。listMine は UUID 完全一致のため混入しない
+    source: "manual",
+    allowPast: true,        // カウンター入力は事後になりがちなため過去時刻も許可
+    phone: p.phone || "",
+    payment_method: payment_method
+  });
+  return {
+    reservation_id: created.reservation_id,
+    display_number: created.display_number,
+    amount: created.amount,
+    payment_status: created.payment_status
+  };
+}
 function adminSlotsBulk_(idToken, p) {
   requireAdmin_(idToken);
   var status = p.status;
@@ -643,6 +798,133 @@ function adminSlotsBulk_(idToken, p) {
     ends_at: jstIso_(new Date(p.to)), status: status
   });
   return { updated: 1 };
+}
+/**
+ * 枠ごとの状態一覧（週グリッドの色分け用）。
+ * 優先順位は BOOKED > CLOSED/BLOCKED（Slots 由来） > OPEN。
+ * 現場は「誰の予約で埋まっているか」を知りたいため予約を最優先する。
+ * 過去枠も実績として返す（availability.range と違い時刻での除外はしない）。
+ */
+function adminSlotsList_(idToken, p) {
+  requireAdmin_(idToken);
+  var court_id = String((p && p.court_id) || "");
+  if (!court_id) throw fail_("court_id は必須です。", "VALIDATION");
+  var fromYmd = jstYmd_(new Date(p.from));
+  var toYmd = jstYmd_(new Date(p.to));
+  var confirmed = readTable_("Reservations").filter(function (r) {
+    return String(r.court_id) === court_id && String(r.status) === "CONFIRMED";
+  });
+  var overrides = readTable_("Slots").filter(function (s) {
+    return String(s.court_id) === court_id && String(s.status) !== "OPEN";
+  });
+  var SLOTS_PER_DAY = (CLOSE_HOUR - OPEN_HOUR) * 2;
+  var slots = [];
+  var ymd = fromYmd;
+  var guard = 0;
+  while (ymd < toYmd && guard < 400) {
+    for (var i = 0; i < SLOTS_PER_DAY; i++) {
+      var startMin = OPEN_HOUR * 60 + i * 30;
+      var sIso = ymd + "T" + pad2_(Math.floor(startMin / 60)) + ":" + pad2_(startMin % 60) + ":00+09:00";
+      var eMin = startMin + 30;
+      var eIso = ymd + "T" + pad2_(Math.floor(eMin / 60)) + ":" + pad2_(eMin % 60) + ":00+09:00";
+      var st = new Date(sIso).getTime();
+      var en = new Date(eIso).getTime();
+
+      var hits = confirmed.filter(function (r) {
+        return new Date(r.starts_at).getTime() < en && new Date(r.ends_at).getTime() > st;
+      });
+      var freeHead = hits.filter(function (r) { return String(r.mode) === "FREE"; })
+        .reduce(function (s, r) { return s + (Number(r.headcount) || 0); }, 0);
+
+      var slot = {
+        slot_id: court_id + "-" + sIso, starts_at: sIso, ends_at: eIso, state: "OPEN",
+        free_remaining: Math.max(0, FREE_MAX_HEADCOUNT - freeHead), reservation_count: hits.length
+      };
+      if (hits.length) {
+        // FREE が複数ある枠は先頭1件だけ載せ、他があることは reservation_count で示す
+        slot.state = "BOOKED";
+        slot.reservation_id = String(hits[0].id);
+        slot.display_number = String(hits[0].display_number || "");
+        slot.group_name = String(hits[0].group_name || "");
+      } else {
+        for (var j = 0; j < overrides.length; j++) {
+          var ost = new Date(overrides[j].starts_at).getTime();
+          var oen = new Date(overrides[j].ends_at).getTime();
+          if (ost < en && oen > st) {
+            slot.state = String(overrides[j].status) === "BLOCKED" ? "BLOCKED" : "CLOSED";
+            break; // 複数重なる場合はシート上の先頭行を採用
+          }
+        }
+      }
+      slots.push(slot);
+    }
+    ymd = jstYmd_(new Date(new Date(ymd + "T12:00:00+09:00").getTime() + 24 * 3600 * 1000));
+    guard++;
+  }
+  return { slots: slots };
+}
+/**
+ * 枠設定の置き換え・解除。bulkUpdate（追加のみ）では CLOSED を戻せないため新設。
+ *  1. 指定期間に重なる既存 Slots 行を削除
+ *  2. はみ出した前後の残余を元の status のまま再挿入（広い CLOSED の一部だけ開けられる）
+ *  3. status が OPEN 以外なら新しい行を1つ追記（OPEN は削除のみ）
+ * 行削除はロック内・_row の降順（インデックスずれ防止）。
+ */
+function adminSlotsSet_(idToken, p) {
+  requireAdmin_(idToken);
+  var court_id = String((p && p.court_id) || "");
+  if (!court_id) throw fail_("court_id は必須です。", "VALIDATION");
+  var status = String((p && p.status) || "");
+  if (["OPEN", "CLOSED", "BLOCKED"].indexOf(status) < 0) throw fail_("invalid status", "VALIDATION");
+  var from = new Date(p.from);
+  var to = new Date(p.to);
+  if (isNaN(from.getTime()) || isNaN(to.getTime())) throw fail_("from / to が不正です。", "VALIDATION");
+  if (from.getTime() >= to.getTime()) throw fail_("to は from より後にしてください。", "VALIDATION");
+  var fromMs = from.getTime();
+  var toMs = to.getTime();
+
+  var lock = LockService.getScriptLock();
+  lock.waitLock(20000);
+  try {
+    var hits = readTable_("Slots").filter(function (s) {
+      if (String(s.court_id) !== court_id) return false;
+      var st = new Date(s.starts_at).getTime();
+      var en = new Date(s.ends_at).getTime();
+      if (isNaN(st) || isNaN(en)) return false;
+      return st < toMs && en > fromMs;
+    });
+    var residues = [];
+    hits.forEach(function (s) {
+      var st = new Date(s.starts_at).getTime();
+      var en = new Date(s.ends_at).getTime();
+      if (st < fromMs) {
+        residues.push({
+          court_id: court_id, starts_at: jstIso_(new Date(st)), ends_at: jstIso_(from), status: String(s.status)
+        });
+      }
+      if (en > toMs) {
+        residues.push({
+          court_id: court_id, starts_at: jstIso_(to), ends_at: jstIso_(new Date(en)), status: String(s.status)
+        });
+      }
+    });
+    var sh = sheet_("Slots");
+    hits.map(function (s) { return s._row; })
+      .sort(function (a, b) { return b - a; })
+      .forEach(function (rowNumber) { sh.deleteRow(rowNumber); });
+
+    var added = 0;
+    residues.forEach(function (r) { appendRow_("Slots", r); added++; });
+    if (status !== "OPEN") {
+      appendRow_("Slots", {
+        court_id: court_id, starts_at: jstIso_(from), ends_at: jstIso_(to), status: status
+      });
+      added++;
+    }
+    return { removed: hits.length, added: added };
+  } finally {
+    lock.releaseLock();
+  }
 }
 function adminBroadcast_(idToken, p) {
   requireAdmin_(idToken);
@@ -700,7 +982,8 @@ function setup() {
     Users: ["id", "line_user_id", "display_name", "phone", "email", "team_name", "role", "created_at", "updated_at"],
     Reservations: ["id", "display_number", "user_id", "court_id", "mode", "starts_at", "ends_at", "sides",
       "purpose", "group_name", "rep_name", "headcount", "note", "status", "total_amount", "payment_status",
-      "paid_at", "checked_in_at", "created_at", "updated_at", "canceled_at"],
+      "paid_at", "checked_in_at", "created_at", "updated_at", "canceled_at",
+      "source", "payment_method", "phone", "cancel_reason", "canceled_by"],
     Slots: ["court_id", "starts_at", "ends_at", "status"],
     Admins: ["line_user_id", "note"],
     AdminAuth: ["username", "salt", "hash", "iterations", "note", "created_at", "updated_at"]
@@ -721,6 +1004,34 @@ function setup() {
   var def = book.getSheetByName("シート1") || book.getSheetByName("Sheet1");
   if (def && book.getSheets().length > 1) book.deleteSheet(def);
   return "setup done";
+}
+
+/**
+ * Reservations の末尾に不足している列だけを追記する（冪等）。
+ * setup() はヘッダ行が既にあると何もしないため、稼働中のシートにはこちらを使う。
+ * 列の並べ替え・削除・改名は一切しない（GAS はヘッダ名で読み書きしている）。
+ * 戻り値: 実際に追加した列名の配列
+ */
+function ensureReservationColumns_() {
+  var sh = sheet_("Reservations");
+  var lastCol = sh.getLastColumn();
+  var current = lastCol > 0
+    ? sh.getRange(1, 1, 1, lastCol).getValues()[0].map(function (h) { return String(h); })
+    : [];
+  var missing = RESERVATION_EXTRA_COLUMNS.filter(function (h) { return current.indexOf(h) < 0; });
+  if (!missing.length) return [];
+  sh.getRange(1, lastCol + 1, 1, missing.length).setValues([missing]);
+  return missing;
+}
+/**
+ * 稼働中のスプレッドシートにスキーマ変更を反映する（Apps Script エディタから手動実行）。
+ * 何度実行しても安全。再デプロイの前に1回実行しておくこと。
+ */
+function migrateSheets() {
+  var added = ensureReservationColumns_();
+  return added.length
+    ? "Reservations に列を追加しました: " + added.join(", ")
+    : "追加すべき列はありません（適用済み）。";
 }
 
 function ensureAdminAuthSheet_() {
