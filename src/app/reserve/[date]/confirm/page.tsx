@@ -8,6 +8,7 @@
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createReservation } from "@/lib/gas";
+import PaymentNotice from "@/components/PaymentNotice";
 import { getIdToken } from "@/lib/auth";
 import { formatRange, formatYen } from "@/lib/format";
 import { charterPrice, freePrice } from "@/lib/pricing";
@@ -81,7 +82,7 @@ export default function ConfirmPage() {
             <p className="text-sm mb-1">予約番号: {done.display_number}</p>
             <p className="text-sm mb-1">種別: {modeLabel}</p>
             <p className="text-sm mb-1">日時: {formatRange(payload.starts_at, payload.ends_at)}</p>
-            <p className="text-sm">金額: {formatYen(done.amount)}（当日現地払い）</p>
+            <p className="text-sm">金額: {formatYen(done.amount)}（当日現地にて現金払い）</p>
           </div>
           <button
             type="button"
@@ -106,6 +107,8 @@ export default function ConfirmPage() {
         </button>
         ご予約内容の確認
       </header>
+      {/* 支払い方法の話が出る画面なので、ここで PayPay 未対応を一度だけ知らせる */}
+      <PaymentNotice />
       <main className="app-main">
         <dl className="text-sm mb-4">
           <Row label="種別" value={modeLabel} />
@@ -127,9 +130,9 @@ export default function ConfirmPage() {
         )}
 
         <div className="notice mb-4">
-          <p className="text-sm mb-1 font-semibold">当日現地でお支払いください</p>
+          <p className="text-sm mb-1 font-semibold">当日現地で現金にてお支払いください</p>
           <p className="text-xs text-muted">
-            お支払いは PayPay（当日カウンターは現金も可）に対応しています。
+            PayPay でのお支払いは現在準備中です。ご利用いただけません。
           </p>
         </div>
 

@@ -20,7 +20,10 @@ export default function LegalPage() {
             label="商品代金以外の必要料金"
             value="なし（ご予約時間を過ぎた場合は30分ごとの追加料金が発生します）"
           />
-          <Row label="支払方法" value="PayPay（ネット予約）／ 当日カウンターは現金も可" />
+          <Row
+            label="支払方法"
+            value="現金のみ（ご利用当日、現地受付にて）※PayPay は現在準備中です"
+          />
           <Row label="支払時期" value="ご利用当日、受付時" />
           <Row
             label="商品の引渡時期"

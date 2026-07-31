@@ -90,7 +90,7 @@ function MyPageInner() {
           </div>
           <div className="text-sm mt-1">
             {formatYen(Number(r.total_amount))}（
-            {r.payment_status === "PAID" ? "支払い済み" : "未払い・当日現地で"}）
+            {r.payment_status === "PAID" ? "支払い済み" : "未払い・当日現地で現金"}）
           </div>
           {r.status === "CONFIRMED" && (
             <div className="flex gap-2 mt-2">
