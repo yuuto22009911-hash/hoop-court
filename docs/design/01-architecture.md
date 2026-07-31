@@ -17,6 +17,12 @@
 
 **1 と 2 は独立したアプリで、互いを呼びません。** 共有しているのは 3 の API だけです。
 
+> ⚠ **`hoop-court` にも `/admin` が残っています**（`src/app/admin/`）。
+> 管理画面は 2 に統一済みで**廃止予定**ですが、現在も同じ GAS を参照して動きます。
+> ただし 2026-08 に追加した4 action（`admin.reservations.create` / `cancel` /
+> `admin.slots.list` / `set`）には**追従していません**。
+> どの画面がどの action を使うかは [api/README.md](./api/README.md) の対応表を参照してください。
+
 ---
 
 ## 2. 構成図

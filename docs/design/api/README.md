@@ -68,11 +68,30 @@ Content-Type: text/plain;charset=UTF-8
 
 ## 使用しているクライアント
 
-| action | LIFF 予約アプリ | 管理画面 |
-| --- | --- | --- |
-| `courts.list` | ✅ | ✅ |
-| `availability.range` | ✅ | — |
-| `auth.*` / `reservations.*` | ✅ | — |
-| `admin.*` | — | ✅ |
+クライアントは**3つ**あります。`hoop-court` の `/admin` は**廃止予定**ですが、現存していて
+同じ GAS を参照します。
 
-実装: LIFF 側 `src/lib/gas.ts` ／ 管理画面側 `src/lib/gas/client.ts`
+| # | クライアント | 実装 |
+| --- | --- | --- |
+| A | LIFF 予約画面（お客様） | `hoop-court` `src/lib/gas.ts` |
+| B | **旧 管理画面（廃止予定）** | 同上（`hoop-court` `src/app/admin/`） |
+| C | 現行 管理画面 | `himawari-site` `src/lib/gas/client.ts` |
+
+| action | A 予約 | B 旧管理 | C 管理 |
+| --- | --- | --- | --- |
+| `courts.list` | ✅ | ✅ | ✅ |
+| `availability.range` | ✅ | ✅ | ✅ |
+| `auth.me` / `auth.register` | ✅ | — | — |
+| `reservations.create` / `listMine` / `cancel` | ✅ | — | — |
+| `admin.login` / `session` / `logout` | — | ✅ | ✅ |
+| `admin.reservations.list` | — | ✅ | ✅ |
+| `admin.reservations.markPaid` / `markNoShow` | — | ✅ | ✅ |
+| `admin.checkin` | — | ✅ | ✅ |
+| `admin.slots.bulkUpdate` | — | ✅ | ✅ |
+| `admin.broadcast` / `admin.sales.summary` | — | ✅ | ✅ |
+| **`admin.reservations.create` / `cancel`** | — | — | ✅ |
+| **`admin.slots.list` / `set`** | — | — | ✅ |
+
+> ⚠ **2026-08 に追加した4 action は、現行の管理画面（C）だけが使います。**
+> 旧管理画面（B）は追従していません。B を廃止するまでは、
+> **同じ操作が2つの画面から可能**な状態が続きます（同じ GAS・同じデータを見ます）。
