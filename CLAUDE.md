@@ -9,6 +9,13 @@
 作業を始める前に [`docs/design/README.md`](docs/design/README.md) を読んで認識を合わせてください。
 プロジェクト横断の取り決めは `himawari-site` の `docs/architecture.md` にあります。
 
+### 現況（2026-08 時点・古い前提で作らない）
+
+- **当日予約は解禁済み。** 拒否するのは「開始時刻 < 現在時刻」だけ（`P0005`）
+- **管理用の4 action が本番稼働中**: `admin.reservations.create` / `cancel` / `admin.slots.list` / `set`
+- **PayPay は使えません**（加盟店契約が未了）。案内は**現金のみ**に統一済み。
+  文言は [`docs/design/04-business-rules.md`](docs/design/04-business-rules.md) §7-B。**「PayPay で支払える」と書かない**
+
 ### 破ると予約データが壊れる3点
 
 1. **予約データの保存先を新設しない**

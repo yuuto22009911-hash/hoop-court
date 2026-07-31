@@ -24,7 +24,7 @@
 | `phone` | string | | 電話番号。`phone` 列に構造化して保存 |
 | `headcount` | number | `FREE` で必須 | 1〜9 |
 | `note` | string | | |
-| `payment_method` | enum | | `CASH` / `PAYPAY` / `BANK_TRANSFER` |
+| `payment_method` | enum | | `CASH` / `PAYPAY` / `BANK_TRANSFER`。**`PAYPAY` は実際には使えません**（下記） |
 
 ## 戻り値
 
@@ -68,6 +68,12 @@
 > **`payment_method` を指定すると、その場で「入金済み」として売上に計上されます。**
 > 「支払い予定」ではなく「**受領済み**」の意味です。
 > 管理画面では既定を「あとで受け取る」にし、方法を選ぶと警告を出しています。
+
+> **`PAYPAY` を送らないでください。** 加盟店契約が未了で、店頭・オンラインとも PayPay は
+> 使えません。GAS は enum を検証するだけなので、送れば通って「PayPay で受領済み」という
+> 嘘の売上が立ちます。管理画面のカウンター受付フォームでは PayPay を
+> 「加盟店契約が未了のため選べません」として disabled にしています。
+> 経緯と再開条件は [04-business-rules §7-A](../04-business-rules.md#7-a-paypay-が使えない理由といま何が制限されているか)。
 
 ## 呼び出し元
 
