@@ -248,15 +248,18 @@ function demoExec(action: string, p: Record<string, unknown>) {
         const startMin = st.getHours() * 60 + st.getMinutes();
         const endMin = startMin + 30;
         if (startMin < OPEN_HOUR * 60 || endMin > CLOSE_HOUR * 60) continue;
-        // 貸切（CHARTER）の確定予約が重なる枠は予約不可とする
-        const blocked = stored.some(
-          (r) =>
-            r.court_id === court_id &&
-            r.status === "CONFIRMED" &&
-            r.mode === "CHARTER" &&
-            new Date(r.starts_at).getTime() < t + SLOT &&
-            new Date(r.ends_at).getTime() > t
-        );
+        // 貸切（CHARTER）の確定予約が重なる枠は予約不可とする。
+        // 開始時刻が現在より過去の枠も不可（GAS の availabilityRange_ と同一基準）。
+        const blocked =
+          t < Date.now() ||
+          stored.some(
+            (r) =>
+              r.court_id === court_id &&
+              r.status === "CONFIRMED" &&
+              r.mode === "CHARTER" &&
+              new Date(r.starts_at).getTime() < t + SLOT &&
+              new Date(r.ends_at).getTime() > t
+          );
         slots.push({
           slot_id: `demo-${court_id}-${st.toISOString()}`,
           starts_at: st.toISOString(),
@@ -303,9 +306,9 @@ function demoExec(action: string, p: Record<string, unknown>) {
       if (startMinOfDay < OPEN_HOUR * 60 || endMinOfDay > CLOSE_HOUR * 60) {
         throw new GasError(`予約は ${OPEN_HOUR}:00〜${CLOSE_HOUR}:00 の範囲で指定してください。`, "P0004");
       }
-      // 当日予約はカウンターのみ（アプリは翌日以降）
-      if (ymd <= todayYmd()) {
-        throw new GasError("当日のご予約はカウンターのみ（要相談）です。", "P0005");
+      // 当日でも開始時刻前なら予約できる。過去の時間帯のみ拒否（GAS 側と同一基準）
+      if (start.getTime() < Date.now()) {
+        throw new GasError("過去の時間帯はご予約いただけません。", "P0005");
       }
 
       let amount: number;
@@ -522,13 +525,5 @@ function hhmmToMin(iso: string): number {
   return hh * 60 + mm;
 }
 
-/** 端末ローカル(JST想定)の今日 YYYY-MM-DD */
-function todayYmd(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${dd}`;
-}
 
 export { GasError, DEMO };

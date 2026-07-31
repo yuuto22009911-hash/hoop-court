@@ -130,10 +130,10 @@ function Calendar() {
           const key = formatYmd(cell.date);
           const ratio = availMap[key] ?? null;
           const sym = ratio === null ? "—" : availabilitySymbol(ratio);
-          // 当日予約はカウンターのみのため、当日・過去日は選択不可（翌日以降のみ）
-          const isPastOrToday = cell.date <= today;
+          // 当日も予約できる（過ぎた時間帯の枠は GAS 側で空きから除外される）。過去日のみ選択不可。
+          const isPast = cell.date < today;
           const isOther = cell.date.getMonth() !== month.getMonth();
-          const disabled = isPastOrToday || isOther || sym === "×";
+          const disabled = isPast || isOther || sym === "×";
           if (disabled) {
             return (
               <div
@@ -164,7 +164,7 @@ function Calendar() {
       {/* 凡例 */}
       <p className="mt-3 text-sm text-muted">◎ 空きあり / ○ 残りわずか / × 満席</p>
       <p className="mt-1 text-xs text-muted">
-        ※ 当日のご予約はカウンターのみ（要相談）。アプリは翌日以降の枠をご予約いただけます。
+        ※ 当日のご予約も承ります。開始時刻を過ぎた枠はご予約いただけません。
       </p>
       <p className="mt-4 text-xs text-muted">
         <a
