@@ -3,7 +3,7 @@
  *   - 予約種別: 貸切（コート）/ バスケフリーゴール
  *   - 貸切: 初回1時間〜・以降30分単位で延長（土日祝は1時間単位）
  *   - フリー: 30分単位・人数あたり（最大9名・バスケ限定）
- *   - ハーフコート1面前提。当日予約はカウンターのみ（アプリは翌日以降）。
+ *   - ハーフコート1面前提。当日予約も可（開始時刻を過ぎた枠は GAS 側で空きから除外される）。
  *   - 金額は向日葵株式会社 公式料金に準拠（lib/pricing）
  */
 
@@ -75,7 +75,9 @@ export default function ReserveDetailPage() {
   const [headcount, setHeadcount] = useState<number>(2);
   const [note, setNote] = useState("");
 
-  const isPastOrToday = date <= todayYmd();
+  // 当日は予約できる。過ぎた時間帯の枠は availability.range が is_available:false で返すため、
+  // 時刻の判定はフロントに持たせない（GAS が唯一の可用性ソース）。
+  const isPastDate = date < todayYmd();
 
   useEffect(() => {
     listCourts().then((r) => {
@@ -151,7 +153,7 @@ export default function ReserveDetailPage() {
   }, [mode, startSlot, endSlot, headcount, date]);
 
   const hasSelection = startSlot !== null && endSlot !== null;
-  const canProceed = hasSelection && groupName.trim().length > 0 && !isPastOrToday;
+  const canProceed = hasSelection && groupName.trim().length > 0 && !isPastDate;
 
   function handleProceed() {
     if (!canProceed || !courtId || startSlot === null || endSlot === null) return;
@@ -173,7 +175,7 @@ export default function ReserveDetailPage() {
 
   const dow = WDAY[new Date(`${date}T00:00:00+09:00`).getDay()];
 
-  if (isPastOrToday) {
+  if (isPastDate) {
     return (
       <>
         <header className="app-header">
@@ -184,9 +186,9 @@ export default function ReserveDetailPage() {
         </header>
         <main className="app-main">
           <div className="notice">
-            <p className="font-semibold mb-1">当日・過去日のご予約はできません</p>
+            <p className="font-semibold mb-1">過去の日付はご予約いただけません</p>
             <p className="text-sm">
-              当日のご予約はカウンターのみ（要相談）です。アプリでは翌日以降の枠をご予約いただけます。
+              本日以降の枠をご予約いただけます（開始時刻を過ぎた枠は選べません）。
             </p>
           </div>
           <button type="button" className="btn btn-ghost w-full" onClick={() => router.push("/")}>

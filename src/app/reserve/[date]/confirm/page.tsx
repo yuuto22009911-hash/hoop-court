@@ -141,7 +141,7 @@ export default function ConfirmPage() {
           <ul className="text-xs text-muted list-disc pl-4 space-y-0.5">
             <li>ご予約時間を過ぎると、30分ごとの追加料金が発生します。</li>
             <li>コートはご予約を最優先でご案内します。</li>
-            <li>当日のご予約・変更はカウンターのみ（要相談）です。</li>
+            <li>当日のご予約も承ります（開始時刻を過ぎた枠は不可）。ご予約内容の変更はカウンターのみ（要相談）です。</li>
           </ul>
         </div>
 

@@ -78,7 +78,7 @@ export default function InfoPage() {
           <ul className="text-sm list-disc pl-5 space-y-1">
             <li>お支払いは当日現地で現金にてお願いします（PayPay は現在準備中です）。</li>
             <li>ご予約はアプリ（LINE）から24時間可能。コートはご予約を最優先でご案内します。</li>
-            <li>当日のご予約・変更はカウンターのみ（要相談）です。</li>
+            <li>当日のご予約も承ります（開始時刻を過ぎた枠は不可）。ご予約内容の変更はカウンターのみ（要相談）です。</li>
             <li>キャンセルは当面無料です（いつでもキャンセル可・暫定）。</li>
           </ul>
         </Section>
