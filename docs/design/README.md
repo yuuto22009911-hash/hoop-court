@@ -45,6 +45,7 @@
 
 | 場所 | 内容 |
 | --- | --- |
+| [`docs/operations/`](../operations/README.md) | **運用ガイド**。場面別のシナリオ（S-01〜S-23 / T-01〜T-10）と操作↔システム対応表 |
 | `apps-script/README.md` | GAS のセットアップ手順・運用上の注意 |
 | `README.md`（リポジトリ直下） | LIFF アプリの開発手順 |
 | himawari-site `docs/handover/` | 管理画面側の引き継ぎ資料 |
