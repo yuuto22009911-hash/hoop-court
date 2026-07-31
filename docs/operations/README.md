@@ -5,7 +5,7 @@
 **現場で「こうしたい」から引くための資料**です。設計書が「システムがどう作られているか」なのに対し、
 こちらは「**どの操作が、どの画面を通り、何が起きるか**」を場面ごとに書いてあります。
 
-> 最終更新: 2026-08-01 ／ 対象: GAS Version 4
+> 最終更新: 2026-08-01 ／ 対象: GAS Version 4（返金対応は次バージョンで反映）
 
 ---
 
@@ -21,6 +21,7 @@
 | 現金を受け取った | [S-09](./03-scenarios-visit.md#s-09) |
 | 電話でキャンセル依頼が来た | [S-13](./04-scenarios-change.md#s-13) |
 | お客様が来なかった | [S-14](./04-scenarios-change.md#s-14) |
+| **返金したので売上から外したい** | [S-24](./04-scenarios-change.md#s-24) |
 | 時間を変更したいと言われた | [S-16](./04-scenarios-change.md#s-16) |
 | 臨時休業にしたい | [S-18](./05-scenarios-slots.md#s-18) |
 | 休業を取り消したい | [S-19](./05-scenarios-slots.md#s-19) |
@@ -38,7 +39,7 @@
 | [01-daily-flow.md](./01-daily-flow.md) | **1日の流れ**（開店前・営業中・閉店後） |
 | [02-scenarios-booking.md](./02-scenarios-booking.md) | 予約が入る（S-01〜S-06） |
 | [03-scenarios-visit.md](./03-scenarios-visit.md) | 来場・受付・入金（S-07〜S-11） |
-| [04-scenarios-change.md](./04-scenarios-change.md) | 変更・キャンセル・No-Show（S-12〜S-17） |
+| [04-scenarios-change.md](./04-scenarios-change.md) | 変更・キャンセル・No-Show・返金（S-12〜S-17 / S-24） |
 | [05-scenarios-slots.md](./05-scenarios-slots.md) | 枠・休業・配信・売上（S-18〜S-23） |
 | [06-scenarios-trouble.md](./06-scenarios-trouble.md) | トラブル対応（T-01〜T-10） |
 | [07-system-map.md](./07-system-map.md) | **操作 ↔ 画面 ↔ action ↔ データ の全対応表** |

@@ -39,6 +39,7 @@
 | 管理者キャンセル | `admin.reservations.cancel` | **Reservations**（status・理由・実行者） | [S-13](./04-scenarios-change.md#s-13) [S-15](./04-scenarios-change.md#s-15) [S-17](./04-scenarios-change.md#s-17) |
 | 受付（チェックイン） 🔴 | `admin.checkin` | **Reservations**（status・受付時刻） | [S-07](./03-scenarios-visit.md#s-07) [S-08](./03-scenarios-visit.md#s-08) |
 | 入金を記録 🔴 | `admin.reservations.markPaid` | **Reservations**（入金状態） | [S-09](./03-scenarios-visit.md#s-09) |
+| 返金を記録 🟡 | `admin.reservations.markRefunded` | **Reservations**（入金状態） | [S-24](./04-scenarios-change.md#s-24) |
 | No-Show を記録 | `admin.reservations.markNoShow` | **Reservations**（status） | [S-14](./04-scenarios-change.md#s-14) |
 
 ### 枠
@@ -104,8 +105,10 @@
 | `reservations.create`（アプリ） | `UNPAID` | 必ず未入金で作られる |
 | `admin.reservations.create`（支払い方法なし） | `UNPAID` | |
 | `admin.reservations.create`（支払い方法あり） | **`PAID`** | その場で売上計上 |
-| `admin.reservations.markPaid` | **`PAID`** | 受付後に記録 |
-| **戻す操作** | — | **無い。📊 シートを直接修正**（[T-06](./06-scenarios-trouble.md#t-06)） |
+| `admin.reservations.markPaid` | **`PAID`** | 受付後に記録。支払い方法も残る |
+| `admin.reservations.markRefunded` | **`REFUNDED`** | **返金したときだけ**。売上から外れる（[S-24](./04-scenarios-change.md#s-24)） |
+| `admin.reservations.cancel` | **変わらない** | キャンセルと返金は別物。`PAID` のままなら売上に残る |
+| **`UNPAID` に戻す操作** | — | **無い。📊 シートを直接修正**（[T-06](./06-scenarios-trouble.md#t-06)） |
 
 ---
 
@@ -113,7 +116,7 @@
 
 | シート | 書き換える action |
 | --- | --- |
-| **Reservations** | `reservations.create` / `reservations.cancel` / `admin.reservations.create` / `admin.reservations.cancel` / `admin.reservations.markPaid` / `admin.reservations.markNoShow` / `admin.checkin` |
+| **Reservations** | `reservations.create` / `reservations.cancel` / `admin.reservations.create` / `admin.reservations.cancel` / `admin.reservations.markPaid` / `admin.reservations.markRefunded` / `admin.reservations.markNoShow` / `admin.checkin` |
 | **Users** | `auth.register` |
 | **Slots** | `admin.slots.set` / `admin.slots.bulkUpdate` |
 | **Courts** | **どの action も書き換えません**（📊 で直接編集） |
@@ -124,14 +127,14 @@
 
 ## 6. カバレッジ
 
-**全21 action が、いずれかのシナリオに登場します。**
+**全22 action が、いずれかのシナリオに登場します。**
 
 | 分類 | action 数 | 登場するシナリオ |
 | --- | --- | --- |
 | 公開 | 2 | S-01, S-03, S-05, S-11, S-20 |
 | 会員 | 5 | S-01, S-02, S-04, S-07, S-12 |
 | 管理ログイン | 3 | 1日の流れ, T-04 |
-| 管理 | 11 | S-06〜S-23, T-01〜T-09 |
+| 管理 | 12 | S-06〜S-24, T-01〜T-09 |
 
 対応表の網羅性は CI ではなく手作業で維持しています。
 **action を追加したら、このファイルとシナリオの両方に追記してください。**

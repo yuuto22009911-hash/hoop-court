@@ -13,6 +13,7 @@
 
 - **当日予約は解禁済み。** 拒否するのは「開始時刻 < 現在時刻」だけ（`P0005`）
 - **管理用の4 action が本番稼働中**: `admin.reservations.create` / `cancel` / `admin.slots.list` / `set`
+- **返金は `admin.reservations.markRefunded`**（未反映・UI 未実装）。キャンセルしただけでは売上から外れない
 - **PayPay は使えません**（加盟店契約が未了）。案内は**現金のみ**に統一済み。
   文言は [`docs/design/04-business-rules.md`](docs/design/04-business-rules.md) §7-B。**「PayPay で支払える」と書かない**
 
@@ -24,7 +25,7 @@
 2. **既存 action を削除・改名・仕様変更しない**
    LIFF 予約アプリと `himawari-site` の管理画面が同じ action を呼ぶ。
    レスポンスのフィールドも削除・改名しない（追加は可）。
-   現行21 action の仕様は [`docs/design/api/`](docs/design/api/README.md) に1 action = 1ファイルで揃えてある。
+   現行22 action の仕様は [`docs/design/api/`](docs/design/api/README.md) に1 action = 1ファイルで揃えてある。
 3. **GAS は「稼働中のウェブアプリを編集 → 新バージョン」で更新する**
    「新しいデプロイ」を作ると `/exec` URL が変わり、**LIFF と管理画面が両方止まる**。
    手順は [`docs/design/05-operations.md`](docs/design/05-operations.md) §1。
@@ -75,5 +76,5 @@ Cloudflare Pages + `@cloudflare/next-on-pages`（Edge Runtime）。
 | 場所 | 内容 |
 | --- | --- |
 | [`docs/design/`](docs/design/README.md) | 設計書。構成・データモデル・**API を action ごと**・業務ルール・運用手順 |
-| [`docs/operations/`](docs/operations/README.md) | 運用ガイド。場面別シナリオ33件と操作↔システム対応表 |
+| [`docs/operations/`](docs/operations/README.md) | 運用ガイド。場面別シナリオ34件と操作↔システム対応表 |
 | [`apps-script/README.md`](apps-script/README.md) | GAS のセットアップと再デプロイの鉄則 |

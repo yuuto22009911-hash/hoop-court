@@ -37,13 +37,14 @@
 
 ## 現況サマリー（2026-08 時点）
 
-**古い前提で作業しないための3点です。** 詳細は各リンク先を見てください。
+**古い前提で作業しないための4点です。** 詳細は各リンク先を見てください。
 
 | # | 変わったこと | 現在の状態 | 詳細 |
 | --- | --- | --- | --- |
 | 1 | **当日予約を解禁** | 拒否するのは「開始時刻 < 現在時刻」だけ。**当日でも開始前なら予約できる** | [04-business-rules §5](./04-business-rules.md#5-予約できる時間当日判定) |
 | 2 | **管理用の4 action を追加** | `admin.reservations.create` / `cancel` / `admin.slots.list` / `set`。GAS Version 4 で本番稼働中 | [api/README.md](./api/README.md) |
 | 3 | **PayPay は利用不可** | 加盟店契約が未了。店頭・オンラインとも**使えない**。案内は**現金のみ**に統一済み | [04-business-rules §7](./04-business-rules.md#7-入金と売上) |
+| 4 | **返金は明示的に記録する** | キャンセルしただけでは売上から外れない。`admin.reservations.markRefunded` を実行して初めて外れる（**本番未反映・UI 未実装**） | [04-business-rules §7-C](./04-business-rules.md#7-c-返金) |
 
 > ⚠ 3 について。**「PayPay で支払える」と書いた案内が残っていたら、それは実態と食い違っています。**
 > LIFF 側の文言は hoop-court PR #28 で現金のみに統一しました（[04-business-rules §7-B](./04-business-rules.md#7-b-お客様への案内文言pr-28-で統一済み) に実文言）。

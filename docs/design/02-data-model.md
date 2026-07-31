@@ -61,7 +61,7 @@ LINE ログインしてプロフィール登録したお客様。
 
 ## 3. Reservations（予約）★中心テーブル
 
-**26列。** 前半21列が初期からの列、末尾5列が 2026-08 に追加した列です。
+**28列。** 前半21列が初期からの列、末尾7列が 2026-08 に追加した列です。
 
 ### 3-1. 基本
 
@@ -92,12 +92,12 @@ LINE ログインしてプロフィール登録したお客様。
 | --- | --- | --- |
 | `status` | enum | `CONFIRMED` / `CANCELED` / `NO_SHOW` / `COMPLETED` |
 | `total_amount` | number | **確定金額（税込）。GAS が算出した値が正** |
-| `payment_status` | enum | `UNPAID` / `PAID` |
-| `paid_at` | ISO8601 | 入金記録時刻 |
+| `payment_status` | enum | `UNPAID` / `PAID` / **`REFUNDED`**（返金済み。売上集計から外れる） |
+| `paid_at` | ISO8601 | 入金記録時刻。**返金しても消しません** |
 | `checked_in_at` | ISO8601 | 受付（チェックイン）時刻 |
 | `created_at` / `updated_at` / `canceled_at` | ISO8601 | |
 
-### 3-4. 末尾5列（2026-08 追加）
+### 3-4. 末尾7列（2026-08 追加）
 
 | 列 | 型 | 説明 |
 | --- | --- | --- |
@@ -106,9 +106,12 @@ LINE ログインしてプロフィール登録したお客様。
 | `phone` | string | カウンター受付で取得した電話番号（後の名寄せ用） |
 | `cancel_reason` | string | キャンセル理由 |
 | `canceled_by` | string | `admin:<username>` / `line:<userId>`（**系統を前置き**） |
+| `refunded_at` | ISO8601 | 返金を記録した時刻（`admin.reservations.markRefunded`） |
+| `refunded_by` | string | 実行者。`canceled_by` と同じ形式 |
 
 > ⚠ これらの列が物理的に無い状態で書き込むと、`appendRow_` は**値を黙って捨てます**。
-> そのため `admin.reservations.create` / `admin.reservations.cancel` は実行前に
+> そのため `admin.reservations.create` / `admin.reservations.cancel` /
+> `admin.reservations.markRefunded` は実行前に
 > 列の存在を確認し、無ければ `CONFIG` エラーで止めます。
 > 追加は `migrateSheets()`（冪等）で行います → [05-operations.md](./05-operations.md) §2。
 
@@ -134,6 +137,33 @@ LINE ログインしてプロフィール登録したお客様。
 - `COMPLETED` は**取り消せません**（`admin.checkin` に逆操作なし）
 - `CANCELED` からのキャンセルは**冪等成功**（`already: true`）
 - 会員自身の `reservations.cancel` は本人の予約のみ・status を問わない
+
+### 3-6. payment_status の遷移
+
+`status`（予約の状態）とは**独立**です。キャンセルしても入金状態は変わりません。
+
+```
+   UNPAID ──── admin.reservations.markPaid ────▶ PAID
+                                                  │
+                                  markRefunded    │  返金した
+                                                  ▼
+                                              REFUNDED
+                                                  │
+                                    markPaid（誤操作の取り消し）
+                                                  │
+                                                  └──▶ PAID に戻る
+                                                       refunded_at / refunded_by も消える
+```
+
+| 遷移 | できるか |
+| --- | --- |
+| `UNPAID` → `REFUNDED` | ❌ `VALIDATION`。もらっていないものは返せない |
+| `PAID` → `REFUNDED` | ✅ |
+| `REFUNDED` → `REFUNDED` | ✅ 冪等成功（`already: true`・時刻は上書きしない） |
+| `REFUNDED` → `PAID` | ✅ `markPaid`。誤って記録したときの戻し |
+| どれか → `UNPAID` | ❌ 戻す action がありません。シートを直接修正します |
+
+**売上集計（`admin.sales.summary`）が数えるのは `PAID` だけです。**
 
 ---
 
