@@ -58,7 +58,12 @@ function Calendar() {
 
   // 表示月の空き状況取得
   useEffect(() => {
-    if (!activeCourtId) return;
+    if (!activeCourtId) {
+      // コート取得が終わっても選べるコートが無い（取得失敗を含む）場合は、
+      // 「読み込んでいます…」のまま止まらないよう表示を解除する
+      if (courtsLoaded) setAvailLoading(false);
+      return;
+    }
     const from = new Date(month);
     const to = new Date(month);
     to.setMonth(to.getMonth() + 1);
@@ -80,7 +85,7 @@ function Calendar() {
       })
       .catch(console.error)
       .finally(() => setAvailLoading(false));
-  }, [activeCourtId, month]);
+  }, [activeCourtId, month, courtsLoaded]);
 
   const grid = useMemo(() => buildMonthGrid(month), [month]);
   const today = new Date();
