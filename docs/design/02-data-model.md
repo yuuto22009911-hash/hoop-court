@@ -102,7 +102,7 @@ LINE ログインしてプロフィール登録したお客様。
 | 列 | 型 | 説明 |
 | --- | --- | --- |
 | `source` | string | 空 = LIFF 経由 / `manual` = 管理画面のカウンター受付 |
-| `payment_method` | enum | `CASH` / `PAYPAY` / `BANK_TRANSFER`。カウンター受付で指定されたときのみ。**`PAYPAY` は現在使えません**（[04-business-rules §7-A](./04-business-rules.md#7-a-paypay-が使えない理由といま何が制限されているか)） |
+| `payment_method` | enum | `CASH` / `PAYPAY` / `BANK_TRANSFER`。カウンター受付（`admin.reservations.create`）と入金記録（`admin.reservations.markPaid`）で指定されたときのみ。**`PAYPAY` は現在使えません**（[04-business-rules §7-A](./04-business-rules.md#7-a-paypay-が使えない理由といま何が制限されているか)） |
 | `phone` | string | カウンター受付で取得した電話番号（後の名寄せ用） |
 | `cancel_reason` | string | キャンセル理由 |
 | `canceled_by` | string | `admin:<username>` / `line:<userId>`（**系統を前置き**） |

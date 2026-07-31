@@ -690,13 +690,27 @@ function findReservationRow_(rid) {
   }
   return null;
 }
+/**
+ * 入金の記録。payment_status を PAID にし、受け取った支払い方法も残す。
+ *
+ * method は「どの方法で受け取ったか」の記録用で、既知の値のときだけ保存する。
+ * 未知の値でも従来どおり PAID にはする（旧 /admin が自由入力で送ってくるため、
+ * ここで弾くと今まで通っていた入金記録が失敗するようになる）。
+ * 保存できたかどうかは戻り値の payment_method で判別できる（空なら未記録）。
+ */
 function adminMarkPaid_(idToken, p) {
   requireAdmin_(idToken);
   var t = findReservationRow_(p.reservation_id);
   if (!t) throw fail_("not found", "NOT_FOUND");
+  var method = String(p.method || "").trim().toUpperCase();
+  if (PAYMENT_METHODS.indexOf(method) < 0) method = "";
+  // 列が無いまま書くと updateRow_ が黙って捨てるので、書くときだけ存在を確かめる
+  if (method) requireReservationColumns_(["payment_method"]);
   var now = nowIso_();
-  updateRow_("Reservations", t._row, { payment_status: "PAID", paid_at: now, updated_at: now });
-  return { paid_at: now };
+  var patch = { payment_status: "PAID", paid_at: now, updated_at: now };
+  if (method) patch.payment_method = method;
+  updateRow_("Reservations", t._row, patch);
+  return { paid_at: now, payment_method: method };
 }
 function adminMarkNoShow_(idToken, p) {
   requireAdmin_(idToken);

@@ -141,7 +141,7 @@
 
 入金が `PAID` になる経路は2つです。
 
-1. `admin.reservations.markPaid` — 受付で入金を記録
+1. `admin.reservations.markPaid` — 受付で入金を記録（`payment_method` も残ります）
 2. `admin.reservations.create` で `payment_method` を指定 — **その場で `PAID`**
 
 > ⚠ 2 は「支払い予定」ではなく「**受領済み**」の意味です。管理画面ではその旨を明示しています。

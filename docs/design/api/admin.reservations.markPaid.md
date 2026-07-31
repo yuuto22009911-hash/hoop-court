@@ -15,16 +15,19 @@
 | フィールド | 型 | 必須 | 説明 |
 | --- | --- | --- | --- |
 | `reservation_id` | string | ✅ | 内部ID・予約番号のどちらでも可 |
-| `method` | enum | | `CASH` / `PAYPAY` / `BANK_TRANSFER` |
-| `received_by` | string | | 受領者 |
-| `amount` | number | | 受領額 |
-| `note` | string | | メモ |
+| `method` | enum | | `CASH` / `PAYPAY` / `BANK_TRANSFER`。**`payment_method` 列に保存されます**。`PAYPAY` は[現在使えません](../04-business-rules.md#7-a-paypay-が使えない理由といま何が制限されているか) |
+| `received_by` | string | | 受領者。**保存されません** |
+| `amount` | number | | 受領額。**保存されません** |
+| `note` | string | | メモ。**保存されません** |
 
 ## 戻り値
 
 ```json
-{ "paid_at": "2026-08-01T10:30:00+09:00" }
+{ "paid_at": "2026-08-01T10:30:00+09:00", "payment_method": "CASH" }
 ```
+
+`payment_method` は**実際に保存した値**です。`method` が未指定、または enum 以外の値だった場合は
+空文字を返します（入金の記録自体は成功しています）。
 
 ## エラー
 
@@ -32,6 +35,7 @@
 | --- | --- |
 | `AUTH` / `FORBIDDEN` | 認証・権限 |
 | `NOT_FOUND` | 予約が見つからない |
+| `CONFIG` | `method` を保存しようとしたが `payment_method` 列が無い（`migrateSheets()` の実行漏れ） |
 
 ## 書き込まれる値
 
@@ -39,16 +43,19 @@
 | --- | --- |
 | `payment_status` | `PAID` |
 | `paid_at` / `updated_at` | 実行時刻 |
+| `payment_method` | `method` が enum に一致したときのみ。一致しなければ**書き換えません**（既存値を残す） |
 
-## ⚠ 既知の不整合（未修正）
+## `method` の扱い
 
-> **`method` / `received_by` / `amount` / `note` は受け取っても保存されません。**
-> クライアント（LIFF・管理画面とも）は `method` を送っていますが、GAS 側は
-> `reservation_id` しか見ていません。
->
-> `payment_method` 列は 2026-08 に追加済みなので、`method` を保存するのは1行の変更です。
-> ただし**現状は「どの方法で受け取ったか」が記録に残りません**。
-> `admin.reservations.create` 経由で作った予約だけは `payment_method` が入ります。
+**未知の値でもエラーにはせず、記録だけを見送ります。**
+
+旧 `/admin`（hoop-court 側・廃止予定）は `window.prompt` の自由入力を送っており、
+`現金` のような値が来ることがあります。ここで `VALIDATION` を返すと、
+**今まで通っていた入金記録が失敗するようになる**ため、値は捨てて `PAID` の記録だけ行います。
+保存できたかどうかは戻り値の `payment_method` で判別してください。
+
+`admin.reservations.create` の `payment_method` は逆に**厳格に検証します**（不正なら `VALIDATION`）。
+あちらは新しい action で、送っているのが自前のフォームだけだからです。
 
 ## 挙動の注意
 
