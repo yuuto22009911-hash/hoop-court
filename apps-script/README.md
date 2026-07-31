@@ -56,12 +56,16 @@
 | `availability.range` | 不要 | 30分枠の空き（9:00–20:00） |
 | `auth.me` | IDトークン | 登録状況・プロフィール |
 | `auth.register` | IDトークン | プロフィール登録 |
-| `reservations.create` | IDトークン | 予約作成（料金は GAS が算出） |
+| `reservations.create` | IDトークン | 予約作成（料金は GAS が算出）。当日も**開始時刻前**なら可 |
 | `reservations.listMine` | IDトークン | 自分の予約一覧 |
 | `reservations.cancel` | IDトークン | キャンセル（当面無料） |
 | `admin.login` | 不要 | ID/パスワードでログイン → セッショントークン発行（LINE不要） |
 | `admin.session` | セッション | トークンの有効性確認 |
 | `admin.logout` | セッション | セッション破棄 |
+| `admin.reservations.create` | 管理者 | カウンター受付（代理予約）。会員不要・過去時刻可 |
+| `admin.reservations.cancel` | 管理者 | 任意の予約をキャンセル（冪等） |
+| `admin.slots.list` | 管理者 | 枠ごとの状態（OPEN/CLOSED/BLOCKED/BOOKED） |
+| `admin.slots.set` | 管理者 | 枠設定の置き換え・解除（`bulkUpdate` は追加のみで解除できない） |
 | `admin.*` | 管理者 | 予約一覧/入金/No-Show/受付/枠/一斉配信/売上 |
 
 > `admin.checkin` は QR に入っている予約IDだけでなく、**予約番号（`R-2026-06-26-d1f8`）でも受付**できる
@@ -80,6 +84,15 @@
 - エディタで関数 **`setup`** を一度実行（初回は権限承認が必要）。
 - `Courts / Users / Reservations / Slots / Admins` シートが作られ、`Courts` に
   「バスケコート（ハーフ1面）」が1件投入されます。
+
+> ⚠ **稼働中のシートに列を足すときは `migrateSheets` を実行する。**
+> `setup()` はヘッダ行が既にあると何もしないため、既存シートには効きません。
+> `migrateSheets()` は `Reservations` の**末尾に不足列だけ**を追記する冪等な関数です
+> （`source` / `payment_method` / `phone` / `cancel_reason` / `canceled_by`）。
+> **これを実行しないと、`appendRow_` はヘッダ名で解決できず値を黙って捨てます**
+> （安全弁として、対象列が無い状態で `admin.reservations.create` /
+> `admin.reservations.cancel` を叩くと `CONFIG` エラーを返すようにしてあります）。
+> 実行順は **`migrateSheets()` → 再デプロイ**。何度実行しても安全です。
 
 ### 3. Script Properties を設定
 プロジェクトの設定 → スクリプト プロパティ:
@@ -164,7 +177,13 @@ PC のブラウザ等から `/admin/login` に **ユーザーID＋パスワー�
 - **Users**: id, line_user_id, display_name, phone, email, team_name, role, created_at, updated_at
 - **Reservations**: id, display_number, user_id, court_id, mode, starts_at, ends_at, sides, purpose,
   group_name, rep_name, headcount, note, status, total_amount, payment_status, paid_at, checked_in_at,
-  created_at, updated_at, canceled_at
+  created_at, updated_at, canceled_at,
+  **source, payment_method, phone, cancel_reason, canceled_by**（2026-08 追加・末尾5列）
+  - `source`: 空 = LIFF 経由 / `manual` = 管理画面から作成
+  - `payment_method`: `CASH` / `PAYPAY` / `BANK_TRANSFER`（指定時はその場で `payment_status = PAID`）
+  - `canceled_by`: `admin:<username>` / `line:<userId>` と系統を前置き
+  - カウンター受付の予約は `user_id = "WALK_IN"`（Users にゲスト行は作らない。
+    `reservations.listMine` は Users の UUID 完全一致なので会員のマイページには出ない）
 - **Slots**（休業/占有の上書き）: court_id, starts_at, ends_at, status（OPEN/CLOSED/BLOCKED）
 - **Admins**: line_user_id, note
 - **AdminAuth**（ID/パスワード）: username, salt, hash, iterations, note, created_at, updated_at
@@ -173,7 +192,8 @@ PC のブラウザ等から `/admin/login` に **ユーザーID＋パスワー�
 
 - 貸切: 平日朝(9-14) 1,210/h（延長30分 660）／平日夕(14-20) 1,500/h（延長30分 800）／土日祝 1,800/h（1時間単位）
 - フリー: 平日 440 / 土日祝 550（30分・1人）。同一時間帯 最大9名。
-- 当日予約はカウンターのみ（アプリは翌日以降）。キャンセルは当面無料。
+- 当日予約も可（**開始時刻を過ぎた枠は不可**）。カウンター受付（`admin.reservations.create`）は過去時刻も登録可。
+- キャンセルは当面無料。
 
 > ⚠ 料金を改定する際は、本ファイル冒頭の定数とフロント `src/lib/pricing.ts` を**同時に**更新すること。
 
