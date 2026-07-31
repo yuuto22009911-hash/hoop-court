@@ -1,5 +1,17 @@
 # PayPay 決済を使えるようにするための手順書
 
+> **お客様にお渡しするのは `paypay-onboarding.pdf`（A4・6ページ）です。**
+> PDF の版下は `paypay-onboarding.html`。文面を直すときは **html と md の両方**を更新し、
+> 次のコマンドで PDF を作り直してください（要 Chromium + IPAGothic）。
+>
+> ```
+> node -e "const{chromium}=require('/opt/node22/lib/node_modules/playwright');(async()=>{
+>   const b=await chromium.launch({executablePath:'/opt/pw-browsers/chromium-1194/chrome-linux/chrome',args:['--no-sandbox']});
+>   const p=await b.newPage(); await p.goto('file://'+process.cwd()+'/docs/paypay-onboarding.html');
+>   await p.pdf({path:'docs/paypay-onboarding.pdf',format:'A4',printBackground:true,
+>     margin:{top:'16mm',right:'15mm',bottom:'18mm',left:'15mm'}}); await b.close();})()"
+> ```
+
 > 向日葵株式会社さま向け ／ 作成: 2026-07-31
 > **この資料の手続きは、すべて向日葵株式会社さまのお名前で行っていただく必要があります。**
 > 契約者ご本人でないと申し込めないため、開発側では代行できません。

@@ -1,0 +1,477 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>PayPay 決済導入のご案内</title>
+<style>
+  @page {
+    size: A4;
+  }
+  :root {
+    --cream: #fdfcf8;
+    --cream-warm: #f8f4e8;
+    --ink: #2f2418;
+    --ink-soft: #5e4f3c;
+    --line: #ddd3b8;
+    --accent: #d86a3c;
+    --accent-dark: #b14e25;
+    --accent-soft: #fae0d2;
+    --brand: #c99238;
+    --success: #5b8c4a;
+    --danger: #c24a3a;
+    --warning: #d9962a;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: "IPAPGothic", "IPAGothic", "Noto Sans JP", sans-serif;
+    color: var(--ink);
+    font-size: 10.2pt;
+    line-height: 1.75;
+  }
+
+  /* ---------- 表紙 ---------- */
+  .cover {
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    height: 250mm;
+  }
+  .cover-mark {
+    font-size: 9pt;
+    letter-spacing: .18em;
+    color: var(--brand);
+    font-weight: 700;
+    border-bottom: 2px solid var(--brand);
+    padding-bottom: 6px;
+    display: inline-block;
+    align-self: flex-start;
+  }
+  .cover-body { margin-top: 58mm; }
+  .cover h1 {
+    font-size: 26pt;
+    line-height: 1.4;
+    margin: 0 0 10px;
+    letter-spacing: .01em;
+  }
+  .cover h1 .em { color: var(--accent-dark); }
+  .cover .sub {
+    font-size: 12pt;
+    color: var(--ink-soft);
+    margin: 0 0 34px;
+  }
+  .cover-meta {
+    border-left: 4px solid var(--accent);
+    padding: 4px 0 4px 14px;
+    font-size: 10pt;
+    color: var(--ink-soft);
+    line-height: 2;
+  }
+  .cover-meta b { color: var(--ink); }
+  .cover-lead {
+    margin-top: auto;
+    background: var(--cream-warm);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 16px 18px;
+    font-size: 10pt;
+  }
+  .cover-lead p { margin: 0 0 8px; }
+  .cover-lead p:last-child { margin-bottom: 0; }
+
+  /* ---------- 本文 ---------- */
+  h2 {
+    font-size: 14pt;
+    margin: 26px 0 12px;
+    padding: 7px 0 7px 13px;
+    border-left: 6px solid var(--accent);
+    background: linear-gradient(90deg, var(--accent-soft) 0%, rgba(250,224,210,0) 75%);
+    page-break-after: avoid;
+  }
+  h2:first-of-type { margin-top: 0; }
+  h3 {
+    font-size: 11.2pt;
+    margin: 18px 0 8px;
+    color: var(--accent-dark);
+    page-break-after: avoid;
+  }
+  p { margin: 0 0 10px; }
+  ul, ol { margin: 0 0 10px; padding-left: 1.3em; }
+  li { margin-bottom: 5px; }
+  strong { color: var(--accent-dark); }
+  a { color: var(--ink); text-decoration: none; border-bottom: 1px dotted var(--line); }
+  code {
+    font-family: "DejaVu Sans Mono", monospace;
+    font-size: 9pt;
+    background: var(--cream-warm);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 1px 5px;
+  }
+  .page-break { page-break-before: always; }
+  .avoid-break { page-break-inside: avoid; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 14px;
+    font-size: 9.6pt;
+    page-break-inside: avoid;
+  }
+  th, td {
+    border: 1px solid var(--line);
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--cream-warm);
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  td.na { color: var(--danger); font-weight: 700; white-space: nowrap; }
+  td.ok { color: var(--success); font-weight: 700; white-space: nowrap; }
+
+  /* ---------- ステップ図 ---------- */
+  .steps { margin: 6px 0 18px; page-break-inside: avoid; }
+  .step {
+    display: flex;
+    align-items: stretch;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--cream);
+  }
+  .step + .arrow {
+    text-align: center;
+    color: var(--accent);
+    font-size: 13pt;
+    line-height: 1;
+    margin: 5px 0;
+  }
+  .step-no {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+    font-size: 15pt;
+    width: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+  }
+  .step-body { padding: 9px 14px; }
+  .step-body .t { font-weight: 700; font-size: 11pt; }
+  .step-body .d { font-size: 9.4pt; color: var(--ink-soft); }
+
+  /* ---------- コールアウト ---------- */
+  .callout {
+    border: 1px solid var(--line);
+    border-left: 5px solid var(--brand);
+    border-radius: 8px;
+    background: var(--cream-warm);
+    padding: 12px 15px;
+    margin: 0 0 14px;
+    page-break-inside: avoid;
+  }
+  .callout .ttl { font-weight: 700; margin-bottom: 5px; }
+  .callout.warn { border-left-color: var(--danger); background: #fbf0ee; }
+  .callout.warn .ttl { color: var(--danger); }
+  .callout.good { border-left-color: var(--success); background: #f0f5ec; }
+  .callout.good .ttl { color: var(--success); }
+  .callout p:last-child, .callout ul:last-child { margin-bottom: 0; }
+
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li {
+    padding-left: 26px;
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .checklist li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 3px;
+    width: 15px;
+    height: 15px;
+    border: 2px solid var(--accent);
+    border-radius: 3px;
+  }
+
+  .do-dont { display: flex; gap: 10px; margin-bottom: 14px; page-break-inside: avoid; }
+  .do-dont > div {
+    flex: 1;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 11px 13px;
+    font-size: 9.4pt;
+  }
+  .do-dont .no { background: #fbf0ee; border-color: #e8c4bd; }
+  .do-dont .yes { background: #f0f5ec; border-color: #c6d8bb; }
+  .do-dont .h { font-weight: 700; margin-bottom: 6px; }
+  .do-dont ul { padding-left: 1.1em; margin: 0; }
+
+  .faq { page-break-inside: avoid; margin-bottom: 13px; }
+  .faq .q { font-weight: 700; }
+  .faq .q::before { content: "Q. "; color: var(--accent-dark); }
+  .faq .a { color: var(--ink-soft); }
+  .faq .a::before { content: "A. "; color: var(--brand); font-weight: 700; }
+
+  .foot-note {
+    margin-top: 26px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    font-size: 8.8pt;
+    color: var(--ink-soft);
+  }
+  .decided td:last-child { font-weight: 700; }
+</style>
+</head>
+<body>
+
+<!-- ============ 表紙 ============ -->
+<section class="cover">
+  <span class="cover-mark">向日葵株式会社 バスケットボールコート 予約システム</span>
+
+  <div class="cover-body">
+    <h1>PayPay でのお支払いを<br><span class="em">ご利用いただくまで</span>の手順</h1>
+    <p class="sub">加盟店のお申し込みから、ネット予約での事前決済まで</p>
+    <div class="cover-meta">
+      <div><b>宛先</b>　向日葵株式会社 御中</div>
+      <div><b>作成日</b>　2026年7月31日</div>
+      <div><b>対象</b>　予約アプリ（LINE）／ 管理画面</div>
+    </div>
+  </div>
+
+  <div class="cover-lead">
+    <p><strong>この資料のお手続きは、すべて向日葵株式会社さまのお名前で行っていただく必要があります。</strong></p>
+    <p>PayPay のご契約は、契約者ご本人さまでないとお申し込みができません。恐れ入りますが、開発側で代行することができない仕組みになっております。</p>
+    <p>お手続きの完了後に発行される<b>3つの情報</b>（本資料「ステップ3」のとおり）をお渡しいただければ、そこから先の作業はすべて開発側で対応いたします。</p>
+  </div>
+</section>
+
+<!-- ============ 1. 現状 ============ -->
+<h2>1. ただいまの状況</h2>
+
+<table class="avoid-break">
+  <tr>
+    <th style="width:46%">店頭（カウンター）での PayPay 支払い</th>
+    <td class="na">ご利用いただけません</td>
+    <td>加盟店契約がお済みでないため</td>
+  </tr>
+  <tr>
+    <th>ネット予約時の PayPay 事前決済</th>
+    <td class="na">ご利用いただけません</td>
+    <td>加盟店契約＋オンライン決済のお申し込みが必要</td>
+  </tr>
+  <tr>
+    <th>現在のお支払い方法</th>
+    <td class="ok">現金のみ</td>
+    <td>ご利用当日、現地の受付にて</td>
+  </tr>
+</table>
+
+<p>予約アプリの案内文も、上記の実態に合わせて<strong>「当日、現地にて現金でお支払い」</strong>に修正済みです。
+ご予約の確認画面では「PayPay でのお支払いは現在準備中です」というお知らせも表示されます。</p>
+
+<!-- ============ 2. 全体の流れ ============ -->
+<h2>2. 全体の流れ</h2>
+
+<div class="steps">
+  <div class="step">
+    <div class="step-no">1</div>
+    <div class="step-body">
+      <div class="t">PayPay 加盟店のお申し込み</div>
+      <div class="d">審査に通ると、<b>店頭での PayPay 支払い</b>がご利用いただけるようになります</div>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+  <div class="step">
+    <div class="step-no">2</div>
+    <div class="step-body">
+      <div class="t">オンライン決済（API）のお申し込み</div>
+      <div class="d">審査に通ると、<b>ネット予約での事前決済</b>を作れるようになります</div>
+    </div>
+  </div>
+  <div class="arrow">▼</div>
+  <div class="step">
+    <div class="step-no">3</div>
+    <div class="step-body">
+      <div class="t">発行された3つの情報を開発側へお渡し</div>
+      <div class="d">実装 → テスト → 公開（開発側の作業です）</div>
+    </div>
+  </div>
+</div>
+
+<div class="callout good">
+  <div class="ttl">ステップ1 だけでも、先に進める価値があります</div>
+  <p>加盟店契約が通った時点で、<b>カウンターでの PayPay 支払いだけ先に始められます。</b>
+  アプリの改修は不要で、案内文を直すだけで対応できます。
+  ネット予約の事前決済は、ステップ2・3まで進んだあとになります。</p>
+</div>
+
+<!-- ============ 3. ステップ1 ============ -->
+<h2>3. ステップ1 ｜ PayPay 加盟店のお申し込み</h2>
+
+<h3>お申し込み先</h3>
+<table>
+  <tr><th style="width:30%">ご案内ページ</th><td>https://paypay.ne.jp/store/</td></tr>
+  <tr><th>お申し込みフォーム</th><td>https://business.paypay.ne.jp/entry/</td></tr>
+  <tr><th>導入の流れ</th><td>https://paypay.ne.jp/store/introduction/</td></tr>
+  <tr><th>お電話でのご相談</th><td>0120-957-640（10:00〜19:00・年中無休）</td></tr>
+</table>
+<p style="font-size:9.2pt;color:var(--ink-soft)">※ リンクが変わっていた場合は、PayPay 公式サイト（https://paypay.ne.jp/）の「加盟店の方はこちら」からお進みください。</p>
+
+<h3>ご用意いただくもの</h3>
+<ul class="checklist">
+  <li><b>代表者さまの本人確認書類</b>（運転免許証・マイナンバーカードなど）</li>
+  <li><b>法人の情報</b>（法人番号、登記上の商号・所在地）</li>
+  <li><b>入金先の銀行口座</b>（法人口座を推奨。屋号と名義が一致していると審査がスムーズです）</li>
+  <li><b>事業の実態がわかるもの</b>（施設の写真、ウェブサイトの URL など）</li>
+</ul>
+
+<h3>期間の目安</h3>
+<div class="callout">
+  <div class="ttl">お申し込みからご利用開始まで、数日〜数週間</div>
+  <p>内容によっては、お電話での確認や追加書類のご提出をお願いされることがあります。
+  <strong>全体を通して、ここが一番お時間のかかる工程です。</strong>早めの着手をおすすめいたします。</p>
+</div>
+
+<h3>補足</h3>
+<ul>
+  <li>法人・個人事業主のどちらでもお申し込みいただけます。</li>
+  <li>決済ごとに手数料が発生します。料率はお申し込み時のご案内をご確認ください（プランにより異なります）。</li>
+</ul>
+
+<!-- ============ 4. ステップ2 ============ -->
+<h2>4. ステップ2 ｜ オンライン決済（API）のお申し込み</h2>
+
+<p>加盟店契約とは<strong>別のお申し込み</strong>になります。ネット予約時に PayPay でお支払いいただけるようにするには、こちらも必要です。</p>
+
+<ol>
+  <li>開発者向けサイト <b>PayPay for Developers</b>（https://developer.paypay.ne.jp/）にご登録いただきます</li>
+  <li>オンライン決済（API）の利用をお申し込みいただきます</li>
+  <li>「PayPay オンライン決済に関する API 利用特約」にご同意いただきます<br>
+      <span style="font-size:9pt;color:var(--ink-soft)">https://about.paypay.ne.jp/terms/merchant-online/rule/api/</span></li>
+  <li>審査を経て、次の<b>3つの情報</b>が発行されます</li>
+</ol>
+
+<p>こちらも審査があり、すぐには発行されません。ステップ1が終わり次第、続けてお進めください。</p>
+
+<!-- ============ 5. ステップ3 ============ -->
+<h2>5. ステップ3 ｜ 開発側にお渡しいただく情報</h2>
+
+<p>PayPay for Developers の管理画面に、次の3つが表示されます。<strong>これを開発側にお渡しください。</strong></p>
+
+<table>
+  <tr><th style="width:34%">MERCHANT_ID（マーチャントID）</th><td>加盟店を識別する ID</td></tr>
+  <tr><th>API_KEY（APIキー）</th><td>API を使うための ID</td></tr>
+  <tr><th>API_SECRET（APIシークレット）</th><td><b style="color:var(--danger)">秘密の鍵。パスワードと同じお取り扱いが必要です</b></td></tr>
+</table>
+
+<div class="callout">
+  <div class="ttl">テスト環境の情報だけ、先にいただけると助かります</div>
+  <p>管理画面には<b>テスト環境</b>と<b>本番環境</b>の切り替えがあり、それぞれ別の値になります。
+  先にテスト環境の3つをお渡しいただければ、本番の審査をお待ちいただく間に開発を進められます。</p>
+</div>
+
+<h3>お受け渡し方法のお願い</h3>
+<p><code>API_SECRET</code> が第三者に漏れると、<strong>向日葵株式会社さまのお名前で決済を作られてしまう</strong>おそれがあります。次のお取り扱いをお願いいたします。</p>
+
+<div class="do-dont">
+  <div class="no">
+    <div class="h">✕ お避けください</div>
+    <ul>
+      <li>メール・LINE・チャットの本文に貼る</li>
+      <li>スクリーンショットを共有フォルダに置く</li>
+    </ul>
+  </div>
+  <div class="yes">
+    <div class="h">○ おすすめの方法</div>
+    <ul>
+      <li>画面共有をしながら口頭でお伝えいただく</li>
+      <li>パスワード管理ツールを利用する</li>
+    </ul>
+  </div>
+</div>
+
+<div class="callout good">
+  <div class="ttl">開発側での取り扱い</div>
+  <p>お預かりした値は、GitHub などのコード置き場には<b>一切保存いたしません。</b>
+  Google Apps Script の「スクリプト プロパティ」に直接ご入力いただく形にいたしますので、
+  開発側が値を保持し続けることもございません。</p>
+</div>
+
+<!-- ============ 6. その後 ============ -->
+<h2>6. 3つの情報をいただいたあとの作業</h2>
+
+<p>ここから先は開発側の作業です。ご参考までに、おおよその規模をお示しします。</p>
+
+<table>
+  <tr><th style="width:64%">作業</th><th>目安</th></tr>
+  <tr><td>決済のしくみを組み込む（決済作成・入金確認・返金）</td><td>2〜4人日</td></tr>
+  <tr><td>予約アプリ側の画面（PayPay へ移動 → 戻ってきて予約確定）</td><td>2〜3人日</td></tr>
+  <tr><td>管理画面（未決済の予約・返金ボタン）</td><td>1人日</td></tr>
+  <tr><td>テスト環境での検証＋実機（スマートフォン）での往復テスト</td><td>1〜2人日</td></tr>
+  <tr><td><b>合計</b></td><td><b>6〜10人日</b></td></tr>
+</table>
+
+<p>公開前に、テスト環境で「決済 → 予約確定 → キャンセル → 返金」までひととおり通します。
+そのあと本番環境で少額の実決済を1件テストしてから公開いたします。</p>
+
+<!-- ============ 7. 決定事項 ============ -->
+<h2>7. 決まっていること／これからお決めいただきたいこと</h2>
+
+<h3>決定済み</h3>
+<table class="decided">
+  <tr><th style="width:38%">事前決済の対象</th><td>ネット予約のみ（カウンター受付は現地払いのまま）</td></tr>
+  <tr><th>決済のタイミング</th><td>ご予約時に全額決済</td></tr>
+  <tr><th>キャンセル時の返金</th><td>管理画面から手動で返金（自動返金にはしない）</td></tr>
+</table>
+
+<h3>これからお決めいただきたいこと</h3>
+<div class="callout warn">
+  <div class="ttl">① キャンセルの返金ルール（優先度：高）</div>
+  <p>現在は「いつでも無料でキャンセル可」となっております。前払いに変わりますと、
+  <b>直前のキャンセルでも全額を返金する</b>ことになります。
+  「〇日前までは全額返金、それ以降は返金なし」といったルールを設けるかどうか、ご検討ください。</p>
+</div>
+<div class="callout">
+  <div class="ttl">② 当日のご予約の扱い</div>
+  <p>当日枠もネット予約で前払いにするか、当日はカウンター受付のみにするか。</p>
+</div>
+<div class="callout">
+  <div class="ttl">③ 特定商取引法の表記</div>
+  <p>前払いに変わると「支払時期」と「返金の条件」の記載変更が必要です。
+  ①のルールが決まり次第、こちらで文面をご用意いたします。</p>
+</div>
+
+<!-- ============ 8. FAQ ============ -->
+<h2>8. よくあるご質問</h2>
+
+<div class="faq">
+  <p class="q">加盟店のお申し込みだけ先に済ませてもよいですか？</p>
+  <p class="a">はい、むしろその方がおすすめです。ステップ1が通れば、店頭での PayPay 支払いだけ先に始められます。</p>
+</div>
+<div class="faq">
+  <p class="q">審査に落ちることはありますか？</p>
+  <p class="a">可能性はございます。その場合は理由に応じた再申請となりますので、ご連絡ください。</p>
+</div>
+<div class="faq">
+  <p class="q">費用はかかりますか？</p>
+  <p class="a">決済ごとに手数料が発生します。料率はお申し込み時のご案内をご確認ください。開発側の作業費とは別になります。</p>
+</div>
+<div class="faq">
+  <p class="q">開発側で代わりに申し込んでもらえませんか？</p>
+  <p class="a">申し訳ございません、できかねます。契約者ご本人（代表者さま）の本人確認と銀行口座の登録が必要なためです。お申し込み画面の入力でご不明な点がございましたら、画面を見ながらご説明いたします。</p>
+</div>
+
+<p class="foot-note">
+  この資料は 2026年7月時点の情報をもとに作成しています。PayPay 側のお手続きや画面は変更されることがありますので、
+  実際のお申し込み画面のご案内を優先してください。<br>
+  向日葵株式会社 バスケットボールコート 予約システム ／ PayPay 決済導入のご案内
+</p>
+
+</body>
+</html>
