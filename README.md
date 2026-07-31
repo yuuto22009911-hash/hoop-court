@@ -3,6 +3,15 @@
 向日葵株式会社（HIMAWARI）バスケ体育館（ハーフコート1面）の予約 LIFF アプリ。
 コーポレートサイト（https://himawari-co.pages.dev）とデザイン・会社情報・料金・予約時間を統一している。
 
+> 📘 **設計書は [`docs/design/`](./docs/design/README.md) にあります。**
+> 全体構成・データモデル・業務ルール・**API の action ごとの仕様**・運用手順をまとめてあります。
+> API を叩く前に [共通規約](./docs/design/03-api-conventions.md) と
+> [action 一覧](./docs/design/api/README.md) を読んでください。
+>
+> 🧭 **現場の運用手順は [`docs/operations/`](./docs/operations/README.md) にあります。**
+> 「予約が入る → 受付する → 入金を記録する」といった場面ごとの流れと、
+> そのとき動くシステムを 33 のシナリオにまとめてあります。
+
 ## スタック
 
 - Next.js 14 (App Router)
