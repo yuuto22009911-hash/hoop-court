@@ -13,7 +13,8 @@
  *      スタンドアロンで作り Script Property SPREADSHEET_ID を設定。
  *   2. 関数 setup() を一度実行 → 各シート作成＋ハーフコート1面を投入。
  *      既存のスプレッドシートに後から列を足す場合は 関数 migrateSheets() を一度実行
- *      （Reservations の末尾に source / payment_method / phone / cancel_reason / canceled_by を追加）。
+ *      （Reservations の末尾に source / payment_method / phone / cancel_reason / canceled_by /
+ *        refunded_at / refunded_by を追加）。何度実行しても安全。
  *   3. Script Properties を設定:
  *        LINE_LOGIN_CHANNEL_ID … LINE ログインチャネルの Channel ID（IDトークン検証用・必須）
  *        LINE_MESSAGING_TOKEN  … Messaging API のチャネルアクセストークン（一斉配信用・任意）
@@ -61,13 +62,24 @@ var HOLIDAY_YEARS = (function () {
   return years;
 })();
 var HOLIDAY_WARNED_ = {};
+/**
+ * 警告を実行ログに残す。
+ *
+ * console は V8 ランタイムにしか無い。このプロジェクトは Rhino の非推奨警告が出る
+ * 状態なので、console が無い環境でも落ちないよう Logger へ退避する。
+ * 料金計算の途中で ReferenceError を投げると、予約そのものが失敗する。
+ */
+function warn_(message) {
+  if (typeof console !== "undefined" && console && console.warn) console.warn(message);
+  else if (typeof Logger !== "undefined" && Logger) Logger.log(message);
+}
 function isWeekendOrHoliday_(ymd) {
   var year = String(ymd).slice(0, 4);
   // 祝日テーブルが切れた年は、祝日が平日料金として計算されてしまう。
   // 料金の挙動は変えず（土日判定のみで動く）、気づけるよう警告だけ残す。
   if (!HOLIDAY_YEARS[year] && !HOLIDAY_WARNED_[year]) {
     HOLIDAY_WARNED_[year] = 1;
-    console.warn(
+    warn_(
       "[holidays] " + year + " 年の祝日が未登録です（" + ymd + "）。" +
       "祝日が平日料金として計算されます。Code.gs の HOLIDAYS と " +
       "hoop-court/src/lib/holidays.ts、himawari-site/src/lib/gas/holidays.ts を更新してください。"
@@ -150,6 +162,7 @@ function handle_(action, p, idToken) {
     case "admin.session": return adminSession_(idToken);
     case "admin.reservations.list": return adminList_(idToken, p);
     case "admin.reservations.markPaid": return adminMarkPaid_(idToken, p);
+    case "admin.reservations.markRefunded": return adminMarkRefunded_(idToken, p);
     case "admin.reservations.markNoShow": return adminMarkNoShow_(idToken, p);
     case "admin.checkin": return adminCheckin_(idToken, p);
     case "admin.slots.bulkUpdate": return adminSlotsBulk_(idToken, p);
@@ -306,7 +319,15 @@ function appendRow_(name, obj) {
  * appendRow_ / updateRow_ がヘッダ名で解決できず、値を黙って捨ててしまう。
  * 追加は migrateSheets()（内部的に ensureReservationColumns_()）で行う。
  */
-var RESERVATION_EXTRA_COLUMNS = ["source", "payment_method", "phone", "cancel_reason", "canceled_by"];
+var RESERVATION_EXTRA_COLUMNS = [
+  "source", "payment_method", "phone", "cancel_reason", "canceled_by",
+  "refunded_at", "refunded_by"
+];
+/** 列があるかどうかだけを見る（無くても続行したい場面用） */
+function hasReservationColumns_(names) {
+  var hs = headers_("Reservations").map(String);
+  return names.every(function (n) { return hs.indexOf(n) >= 0; });
+}
 /** 指定した列が Reservations に存在しなければ CONFIG エラー（黙って捨てるのを防ぐ） */
 function requireReservationColumns_(names) {
   var hs = headers_("Reservations").map(String);
@@ -660,7 +681,9 @@ function toReservation_(r) {
     payment_method: r.payment_method ? String(r.payment_method) : "",
     phone: r.phone ? String(r.phone) : "",
     cancel_reason: r.cancel_reason ? String(r.cancel_reason) : "",
-    canceled_by: r.canceled_by ? String(r.canceled_by) : ""
+    canceled_by: r.canceled_by ? String(r.canceled_by) : "",
+    refunded_at: r.refunded_at ? String(r.refunded_at) : "",
+    refunded_by: r.refunded_by ? String(r.refunded_by) : ""
   };
 }
 function reservationsListMine_(idToken) {
@@ -735,13 +758,67 @@ function findReservationRow_(rid) {
     "AMBIGUOUS"
   );
 }
+/**
+ * 入金の記録。payment_status を PAID にし、受け取った支払い方法も残す。
+ *
+ * method は「どの方法で受け取ったか」の記録用で、既知の値のときだけ保存する。
+ * 未知の値でも従来どおり PAID にはする（旧 /admin が自由入力で送ってくるため、
+ * ここで弾くと今まで通っていた入金記録が失敗するようになる）。
+ * 保存できたかどうかは戻り値の payment_method で判別できる（空なら未記録）。
+ */
 function adminMarkPaid_(idToken, p) {
   requireAdmin_(idToken);
   var t = findReservationRow_(p.reservation_id);
   if (!t) throw fail_("not found", "NOT_FOUND");
+  var method = String(p.method || "").trim().toUpperCase();
+  if (PAYMENT_METHODS.indexOf(method) < 0) method = "";
+  // 列が無いまま書くと updateRow_ が黙って捨てるので、書くときだけ存在を確かめる
+  if (method) requireReservationColumns_(["payment_method"]);
   var now = nowIso_();
-  updateRow_("Reservations", t._row, { payment_status: "PAID", paid_at: now, updated_at: now });
-  return { paid_at: now };
+  var patch = { payment_status: "PAID", paid_at: now, updated_at: now };
+  if (method) patch.payment_method = method;
+  // 返金済みを再度 PAID に戻す場合。返金の記録が残ったままだと状態が矛盾する
+  if (String(t.payment_status) === "REFUNDED" && hasReservationColumns_(["refunded_at", "refunded_by"])) {
+    patch.refunded_at = ""; patch.refunded_by = "";
+  }
+  updateRow_("Reservations", t._row, patch);
+  return { paid_at: now, payment_method: method };
+}
+/**
+ * 返金の記録。payment_status を REFUNDED にして売上集計から外す。
+ *
+ * キャンセルしただけでは売上から外さない。実際にお金を返したときだけ実行する
+ * （キャンセルしても返金していなければ、入金は現実に存在するため）。
+ * 詳細は docs/design/04-business-rules.md §7-C。
+ */
+function adminMarkRefunded_(idToken, p) {
+  var actor = requireAdmin_(idToken);
+  requireReservationColumns_(["refunded_at", "refunded_by"]);
+  var t = findReservationRow_(p.reservation_id);
+  if (!t) throw fail_("not found", "NOT_FOUND");
+  var prev = String(t.payment_status || "UNPAID");
+  var out = {
+    payment_status: "REFUNDED",
+    prev_payment_status: prev,
+    display_number: String(t.display_number),
+    amount: Number(t.total_amount || 0)
+  };
+  // 冪等。二重に押しても最初の返金記録を上書きしない
+  if (prev === "REFUNDED") {
+    out.already = true;
+    out.refunded_at = t.refunded_at ? String(t.refunded_at) : "";
+    return out;
+  }
+  if (prev !== "PAID") {
+    throw fail_("入金が記録されていない予約は返金できません（現在: " + prev + "）。", "VALIDATION");
+  }
+  var now = nowIso_();
+  updateRow_("Reservations", t._row, {
+    payment_status: "REFUNDED", refunded_at: now, refunded_by: adminActorLabel_(actor), updated_at: now
+  });
+  out.already = false;
+  out.refunded_at = now;
+  return out;
 }
 function adminMarkNoShow_(idToken, p) {
   requireAdmin_(idToken);
@@ -985,17 +1062,33 @@ function adminBroadcast_(idToken, p) {
   if (res.getResponseCode() >= 300) throw fail_("配信に失敗: " + res.getContentText(), "BROADCAST");
   return { sent: true };
 }
+/**
+ * 売上集計。payment_status === "PAID" の予約だけを計上する。
+ *
+ * キャンセル済みでも PAID なら計上する。キャンセルと返金は別物で、
+ * 返金していなければ入金は現実に存在するため（docs/design/04-business-rules.md §7-C）。
+ * 返金したら admin.reservations.markRefunded で REFUNDED にする。そこで初めて外れる。
+ * 参考値として、同じ期間の返金額を refunded に入れて返す。
+ */
 function adminSales_(idToken, p) {
   requireAdmin_(idToken);
   var courts = listCourts_();
   var nameById = {};
   courts.forEach(function (c) { nameById[c.id] = c.name; });
-  var paid = readTable_("Reservations").filter(function (r) {
-    if (String(r.payment_status) !== "PAID") return false;
+  function inRange_(r) {
     if (p.from && new Date(r.starts_at) < new Date(p.from)) return false;
     if (p.to && new Date(r.starts_at) >= new Date(p.to)) return false;
     return true;
+  }
+  var all = readTable_("Reservations");
+  var paid = all.filter(function (r) {
+    return String(r.payment_status) === "PAID" && inRange_(r);
   });
+  var refundedRows = all.filter(function (r) {
+    return String(r.payment_status) === "REFUNDED" && inRange_(r);
+  });
+  var refundedTotal = 0;
+  refundedRows.forEach(function (r) { refundedTotal += Number(r.total_amount || 0); });
   var total = 0, byCourt = {}, byDay = {};
   paid.forEach(function (r) {
     var amt = Number(r.total_amount || 0);
@@ -1010,7 +1103,9 @@ function adminSales_(idToken, p) {
   return {
     total: total,
     by_court: Object.keys(byCourt).map(function (k) { return byCourt[k]; }),
-    by_day: Object.keys(byDay).sort().map(function (k) { return byDay[k]; })
+    by_day: Object.keys(byDay).sort().map(function (k) { return byDay[k]; }),
+    // 参考値（total には含まれない）。返金の有無を画面で示せるように返す
+    refunded: { total: refundedTotal, count: refundedRows.length }
   };
 }
 
@@ -1028,7 +1123,8 @@ function setup() {
     Reservations: ["id", "display_number", "user_id", "court_id", "mode", "starts_at", "ends_at", "sides",
       "purpose", "group_name", "rep_name", "headcount", "note", "status", "total_amount", "payment_status",
       "paid_at", "checked_in_at", "created_at", "updated_at", "canceled_at",
-      "source", "payment_method", "phone", "cancel_reason", "canceled_by"],
+      "source", "payment_method", "phone", "cancel_reason", "canceled_by",
+      "refunded_at", "refunded_by"],
     Slots: ["court_id", "starts_at", "ends_at", "status"],
     Admins: ["line_user_id", "note"],
     AdminAuth: ["username", "salt", "hash", "iterations", "note", "created_at", "updated_at"]
@@ -1074,9 +1170,12 @@ function ensureReservationColumns_() {
  */
 function migrateSheets() {
   var added = ensureReservationColumns_();
-  return added.length
+  var msg = added.length
     ? "Reservations に列を追加しました: " + added.join(", ")
     : "追加すべき列はありません（適用済み）。";
+  // 戻り値は Apps Script の実行ログに出ない。実行できたことが画面で分かるよう明示的に出す
+  Logger.log(msg);
+  return msg;
 }
 
 function ensureAdminAuthSheet_() {

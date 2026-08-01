@@ -9,13 +9,17 @@ name: Deploy (Cloudflare Pages)
 #     - CLOUDFLARE_API_TOKEN  … Cloudflare の API トークン（Pages 編集権限）
 #     - CLOUDFLARE_ACCOUNT_ID … Cloudflare のアカウント ID
 #   Variables（任意・ビルド時にバンドルへ埋め込まれる）:
-#     - NEXT_PUBLIC_DEMO_MODE     … 未設定なら "1"（DEMO）。本番LINE運用時は "0"
+#     - NEXT_PUBLIC_DEMO_MODE     … 未設定なら "0"（本番）。DEMO で動かしたいときだけ "1"
 #     - NEXT_PUBLIC_LIFF_ID       … LIFF ID（本番運用時）
 #     - NEXT_PUBLIC_GAS_ENDPOINT  … Apps Script の /exec URL（本番運用時）
 #     - NEXT_PUBLIC_ADMIN_LIFF_ID … 管理画面用 LIFF ID（任意）
 #
 # ※ NEXT_PUBLIC_* はビルド時にクライアントバンドルへ埋め込まれるため、Cloudflare
 #    ダッシュボード側の環境変数ではなく「ここ（GitHub 側の Variables）」の値が使われる。
+#
+# ※ DEMO_MODE の既定を "0" にしているのは、変数が消えたときに本番が擬似データで
+#    動いてしまうのを防ぐため。GAS 未設定なら画面はエラーになるが、「予約できたよう
+#    に見えて1件も入っていない」状態より、止まって気付けるほうが損失が小さい。
 
 on:
   push:
@@ -49,7 +53,7 @@ jobs:
       - name: Build (next-on-pages)
         run: npm run pages:build
         env:
-          NEXT_PUBLIC_DEMO_MODE: ${{ vars.NEXT_PUBLIC_DEMO_MODE || '1' }}
+          NEXT_PUBLIC_DEMO_MODE: ${{ vars.NEXT_PUBLIC_DEMO_MODE || '0' }}
           NEXT_PUBLIC_LIFF_ID: ${{ vars.NEXT_PUBLIC_LIFF_ID }}
           NEXT_PUBLIC_GAS_ENDPOINT: ${{ vars.NEXT_PUBLIC_GAS_ENDPOINT }}
           NEXT_PUBLIC_ADMIN_LIFF_ID: ${{ vars.NEXT_PUBLIC_ADMIN_LIFF_ID }}

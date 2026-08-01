@@ -46,6 +46,7 @@ Content-Type: text/plain;charset=UTF-8
 | `admin.reservations.create` | カウンター受付（代理予約） | [→](./admin.reservations.create.md) |
 | `admin.reservations.cancel` | 管理者によるキャンセル | [→](./admin.reservations.cancel.md) |
 | `admin.reservations.markPaid` | 入金を記録 | [→](./admin.reservations.markPaid.md) |
+| `admin.reservations.markRefunded` | 返金を記録（売上から外す） | [→](./admin.reservations.markRefunded.md) |
 | `admin.reservations.markNoShow` | No-Show を記録 | [→](./admin.reservations.markNoShow.md) |
 | `admin.checkin` | 受付（チェックイン） | [→](./admin.checkin.md) |
 | `admin.slots.list` | 枠ごとの状態 | [→](./admin.slots.list.md) |
@@ -61,7 +62,7 @@ Content-Type: text/plain;charset=UTF-8
 | 印 | 意味 | 該当 |
 | --- | --- | --- |
 | 🟢 | 読み取りのみ | `courts.list` / `availability.range` / `auth.me` / `*.list` / `*.listMine` / `admin.session` / `admin.sales.summary` |
-| 🟡 | 書き込むが取り消せる | `auth.register` / `reservations.*` / `admin.reservations.cancel` / `admin.slots.*` |
+| 🟡 | 書き込むが取り消せる | `auth.register` / `reservations.*` / `admin.reservations.cancel` / `admin.reservations.markRefunded` / `admin.slots.*` |
 | 🔴 | **取り消せない・外部に影響** | `admin.checkin`（戻せない） / `admin.broadcast`（全員に届く） / `admin.reservations.markPaid`（売上計上） |
 
 ---
@@ -91,7 +92,12 @@ Content-Type: text/plain;charset=UTF-8
 | `admin.broadcast` / `admin.sales.summary` | — | ✅ | ✅ |
 | **`admin.reservations.create` / `cancel`** | — | — | ✅ |
 | **`admin.slots.list` / `set`** | — | — | ✅ |
+| **`admin.reservations.markRefunded`** | — | — | ✅（PR #17・未マージ） |
 
 > ⚠ **2026-08 に追加した4 action は、現行の管理画面（C）だけが使います。**
 > 旧管理画面（B）は追従していません。B を廃止するまでは、
 > **同じ操作が2つの画面から可能**な状態が続きます（同じ GAS・同じデータを見ます）。
+
+> ⚠ **`admin.reservations.markRefunded` は GAS Version 5 から使えます。**
+> 管理画面側（himawari-site PR #17）は実装済みですが、**GAS を反映してからデプロイ**します。
+> 逆にすると `unsupported action` になるボタンが本番に出ます。

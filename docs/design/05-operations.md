@@ -42,9 +42,12 @@
 
 ```
 migrateSheets()
-  → "Reservations に列を追加しました: source, payment_method, phone, cancel_reason, canceled_by"
+  → "Reservations に列を追加しました: refunded_at, refunded_by"
   → または "追加すべき列はありません（適用済み）。"
 ```
+
+対象の列（末尾7列）: `source` / `payment_method` / `phone` / `cancel_reason` / `canceled_by` /
+**`refunded_at`** / **`refunded_by`**（末尾2つは 2026-08 の返金対応で追加）。
 
 | 項目 | 内容 |
 | --- | --- |
@@ -52,12 +55,13 @@ migrateSheets()
 | 何度実行しても安全か | ✅ 安全。不足分だけ追記する |
 | `setup()` との違い | `setup()` はヘッダ行があると何もしないため、**既存シートには効かない** |
 
-> ⚠ **実行ログには何も出ません。** 戻り値は Apps Script のログに表示されない仕様のためです。
-> エラーなく「Completed」で終われば、**列が揃っていることは確定**します
-> （追加したか、元からあったかの違いだけ）。
+> 💡 **実行ログにメッセージが出ます**（`Logger.log` を追加しました）。
+> それ以前のバージョンでは戻り値がログに出ず何も表示されませんでしたが、
+> エラーなく「Completed」で終われば列が揃っていることは同じく確定します。
 
-飛ばした場合は、`admin.reservations.create` / `cancel` が `CONFIG` エラーで止まります
-（黙って値を捨てないための安全弁）。
+飛ばした場合は、`admin.reservations.create` / `cancel` / `markRefunded` が
+`CONFIG` エラーで止まります（黙って値を捨てないための安全弁）。
+`markPaid` は `method` を保存しようとしたときだけ止まります。
 
 ---
 

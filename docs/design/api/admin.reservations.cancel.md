@@ -36,6 +36,7 @@
 | `AUTH` / `FORBIDDEN` | 認証・権限 |
 | `VALIDATION` | `reservation_id` が空 |
 | `NOT_FOUND` | 予約が見つからない |
+| `AMBIGUOUS` | 予約番号が複数の予約に一致した（同日に UUID 先頭4桁が衝突）。一覧から選ぶか予約IDで指定する |
 | `CONFIG` | `cancel_reason` / `canceled_by` 列が無い |
 
 ## 書き込まれる値

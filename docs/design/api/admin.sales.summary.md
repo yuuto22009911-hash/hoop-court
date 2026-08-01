@@ -26,7 +26,8 @@
   "total": 12400,
   "by_court": [ { "court_id": "court-half", "court_name": "バスケコート（ハーフ1面）",
                   "total": 12400, "count": 8 } ],
-  "by_day":   [ { "date": "2026-08-01", "total": 3600, "count": 2 } ]
+  "by_day":   [ { "date": "2026-08-01", "total": 3600, "count": 2 } ],
+  "refunded": { "total": 1800, "count": 1 }
 }
 ```
 
@@ -35,6 +36,7 @@
 | `total` | 期間内の合計金額 |
 | `by_court` | コート別の合計と件数 |
 | `by_day` | 日別の合計と件数。**日付の昇順** |
+| `refunded` | 同じ期間の返金（`REFUNDED`）の合計と件数。**参考値で、`total` には含まれません** |
 
 ## エラー
 
@@ -51,9 +53,11 @@
 | 日付の基準 | **`starts_at`**（利用日）。`paid_at`（入金日）ではない |
 | status | **見ていない。** `CANCELED` でも `PAID` なら計上される |
 
-> ⚠ **キャンセル済みでも `payment_status` が `PAID` のままなら売上に残ります。**
-> 返金した場合は、スプレッドシートで `payment_status` を戻す運用が必要です
-> （`REFUNDED` を扱う仕組みはまだありません）。
+> **キャンセル済みでも `PAID` なら計上します。これは仕様です。**
+> キャンセルと返金は別の出来事で、返金していなければ入金は現実に存在するためです。
+> **返金したら [`admin.reservations.markRefunded`](./admin.reservations.markRefunded.md) で
+> `REFUNDED` にしてください。** そこで初めて売上から外れます。
+> 判断の経緯は [04-business-rules §7-C](../04-business-rules.md#7-c-返金)。
 
 ## 挙動の注意
 

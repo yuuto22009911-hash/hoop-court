@@ -62,7 +62,6 @@
 > 更新するときは **3ファイルすべて**を同時に直してください。片方だけだと見積と請求額がズレます。
 > `apps-script/Code.gs` の `HOLIDAYS` ／ `hoop-court/src/lib/holidays.ts` ／
 > `himawari-site/src/lib/gas/holidays.ts`。翌年分の告示は前年2月ごろに出ます。
-> `Code.gs` の `HOLIDAYS` と `src/lib/holidays.ts` を**同時に**更新してください。
 
 ---
 
@@ -163,11 +162,11 @@
 | --- | --- |
 | 支払いタイミング | **ご利用当日、現地の受付にて** |
 | 支払い方法 | **現金のみ**（PayPay は加盟店契約が未了で利用不可） |
-| 売上集計の対象 | `payment_status = PAID` の予約のみ（`admin.sales.summary`） |
+| 売上集計の対象 | `payment_status = PAID` の予約のみ（`admin.sales.summary`）。**キャンセル済みでも `PAID` なら計上**（§7-C） |
 
 入金が `PAID` になる経路は2つです。
 
-1. `admin.reservations.markPaid` — 受付で入金を記録
+1. `admin.reservations.markPaid` — 受付で入金を記録（`payment_method` も残ります）
 2. `admin.reservations.create` で `payment_method` を指定 — **その場で `PAID`**
 
 > ⚠ 2 は「支払い予定」ではなく「**受領済み**」の意味です。管理画面ではその旨を明示しています。
@@ -208,6 +207,32 @@
 ポップアップは `src/components/PaymentNotice.tsx`。`sessionStorage`（キー `hc_paypay_notice_seen`）で
 同一セッション中は1回だけ表示します。**加盟店契約と決済実装が済んだら、このコンポーネントごと削除**し、
 上記の文言も一斉に戻してください。
+
+### 7-C. 返金
+
+**キャンセルと返金は別の出来事です。**
+
+| 起きたこと | `status` | `payment_status` | 売上 |
+| --- | --- | --- | --- |
+| 予約を受けた | `CONFIRMED` | `UNPAID` | — |
+| 現金を受け取った | `CONFIRMED` | `PAID` | **計上** |
+| キャンセルした（返金していない） | `CANCELED` | **`PAID` のまま** | **計上したまま** |
+| お金を返した | `CANCELED` | **`REFUNDED`** | **外れる** |
+
+**キャンセルしただけでは売上から外しません。** 返金していなければ入金は現実に存在し、
+外すと帳簿と現金が合わなくなるためです（キャンセル料は0円ですが、当日キャンセルで
+返金しない運用や、返金が後日になる運用がありえます）。
+
+返金したら `admin.reservations.markRefunded` で `REFUNDED` にします。
+**現金手渡しの返金はシステムの外で起きるため、人が実行するまで自動では変わりません。**
+
+> ⚠ **運用に一手増えます。** 「返金したら管理画面で返金を記録する」まで含めて1セットです。
+> 忘れると、返したお金が売上に残ります。手順は
+> [運用ガイド S-24](../operations/04-scenarios-change.md#s-24)。
+
+`REFUNDED` にしても `paid_at` / `payment_method` は残ります。「もらって、返した」という
+順序を残すためです。誤って記録した場合は `admin.reservations.markPaid` で `PAID` に戻せます。
+
 
 ---
 

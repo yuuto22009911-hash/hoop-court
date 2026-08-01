@@ -159,6 +159,7 @@ idToken が 64桁hex か？
 | `admin.reservations.cancel` | **冪等**。2回目は `already: true` を返すだけ |
 | `admin.slots.set` | **冪等**。同じ指定なら結果は同じ |
 | `admin.reservations.markPaid` | 冪等（`paid_at` が上書きされる） |
+| `admin.reservations.markRefunded` | **冪等**。2回目は `already: true`。`refunded_at` は上書きしない |
 | `reservations.create` / `admin.reservations.create` | **冪等でない。二重予約になる** |
 | `admin.checkin` | 2回目は `ALREADY_CHECKED_IN` |
 
