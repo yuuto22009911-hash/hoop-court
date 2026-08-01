@@ -227,6 +227,50 @@ label.field textarea:focus-visible {
   color: #c4baa0;
   cursor: not-allowed;
 }
+/* 空き記号は等倍の画面でも判別できるよう、大きさと色で差をつける */
+.tt-sym {
+  font-size: 20px;
+  line-height: 1;
+  font-weight: 600;
+}
+.tt-sym.is-ok {
+  color: var(--success);
+}
+.tt-sym.is-sel {
+  color: var(--accent-dark);
+}
+.tt-sym.is-none {
+  color: #c4baa0;
+  font-weight: 400;
+}
+.tt-loading {
+  height: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-soft);
+  font-size: 14px;
+  background: var(--cream);
+}
+
+/* 読み込み中プレースホルダ */
+.skeleton {
+  display: inline-block;
+  height: 1em;
+  min-width: 6em;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--cream-warm) 25%, #efe7d3 37%, var(--cream-warm) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.4s ease infinite;
+  vertical-align: middle;
+}
+@keyframes skeleton-shimmer {
+  0% { background-position: 100% 50%; }
+  100% { background-position: 0 50%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+}
 
 /* 注意 / 情報ボックス */
 .notice {
@@ -299,8 +343,10 @@ label.field textarea:focus-visible {
   font-size: 16px;
 }
 .cal-cell .sym {
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   color: var(--ink-soft);
+  min-height: 18px;
 }
 
 .wday-header {

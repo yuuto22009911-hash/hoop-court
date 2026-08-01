@@ -63,6 +63,8 @@ export default function ReserveDetailPage() {
 
   const [courtId, setCourtId] = useState<string>("");
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
+  // 読み込み前は slotAvail が全 false になり、全枠「×（満席）」に見えてしまうため区別する
+  const [slotsLoading, setSlotsLoading] = useState(true);
   const [mode, setMode] = useState<BookingMode>("CHARTER");
 
   // 30分スロット index（開始・終了は exclusive）
@@ -89,9 +91,11 @@ export default function ReserveDetailPage() {
     if (!courtId) return;
     const from = `${date}T00:00:00+09:00`;
     const to = `${date}T24:00:00+09:00`;
+    setSlotsLoading(true);
     availabilityRange(courtId, from, to)
       .then((r) => setSlots(r.slots))
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setSlotsLoading(false));
   }, [courtId, date]);
 
   // 30分スロットの空き（index → boolean）
@@ -264,6 +268,13 @@ export default function ReserveDetailPage() {
         </p>
 
         {/* 時刻表（30分） */}
+        {slotsLoading ? (
+          <div className="timetable mb-4">
+            <div className="tt-loading" role="status">
+              空き状況を読み込んでいます…
+            </div>
+          </div>
+        ) : (
         <div className="timetable mb-4">
           {Array.from({ length: SLOTS_PER_DAY }, (_, i) => i).map((i) => {
             const available = slotAvail[i];
@@ -282,11 +293,14 @@ export default function ReserveDetailPage() {
                 <span>
                   {minToHHMM(slotMin(i))}〜{minToHHMM(slotMin(i + 1))}
                 </span>
-                <span>{available ? (inRange ? "✓" : "◎") : "×"}</span>
+                <span className={`tt-sym ${available ? (inRange ? "is-sel" : "is-ok") : "is-none"}`}>
+                  {available ? (inRange ? "✓" : "◎") : "×"}
+                </span>
               </button>
             );
           })}
         </div>
+        )}
 
         {hasSelection && (
           <p className="mb-3 text-sm">

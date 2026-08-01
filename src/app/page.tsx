@@ -41,6 +41,9 @@ function Calendar() {
   });
   // 日付文字列 (yyyy-mm-dd) → 空き比率
   const [availMap, setAvailMap] = useState<Record<string, number>>({});
+  // 読み込み中に「—」や古い記号を出すと「異常」「満席」と誤読されるため状態を持つ
+  const [courtsLoaded, setCourtsLoaded] = useState(false);
+  const [availLoading, setAvailLoading] = useState(true);
 
   // コート初期化
   useEffect(() => {
@@ -49,15 +52,22 @@ function Calendar() {
         setCourts(r.courts);
         if (r.courts[0]) setActiveCourtId(r.courts[0].id);
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setCourtsLoaded(true));
   }, []);
 
   // 表示月の空き状況取得
   useEffect(() => {
-    if (!activeCourtId) return;
+    if (!activeCourtId) {
+      // コート取得が終わっても選べるコートが無い（取得失敗を含む）場合は、
+      // 「読み込んでいます…」のまま止まらないよう表示を解除する
+      if (courtsLoaded) setAvailLoading(false);
+      return;
+    }
     const from = new Date(month);
     const to = new Date(month);
     to.setMonth(to.getMonth() + 1);
+    setAvailLoading(true);
     availabilityRange(activeCourtId, from.toISOString(), to.toISOString())
       .then((r) => {
         const map: Record<string, { total: number; avail: number }> = {};
@@ -73,8 +83,9 @@ function Calendar() {
         });
         setAvailMap(out);
       })
-      .catch(console.error);
-  }, [activeCourtId, month]);
+      .catch(console.error)
+      .finally(() => setAvailLoading(false));
+  }, [activeCourtId, month, courtsLoaded]);
 
   const grid = useMemo(() => buildMonthGrid(month), [month]);
   const today = new Date();
@@ -84,7 +95,9 @@ function Calendar() {
     <div>
       {/* 施設・料金の案内 */}
       <div className="flex items-center justify-between mb-3">
-        <div className="text-sm font-semibold">{courts[0]?.name ?? "バスケコート"}</div>
+        <div className="text-sm font-semibold">
+          {courtsLoaded ? (courts[0]?.name ?? "バスケコート") : <span className="skeleton w-40" />}
+        </div>
         <Link href="/info" className="text-sm underline text-accent">
           料金・ご利用案内
         </Link>
@@ -129,7 +142,8 @@ function Calendar() {
         {grid.map((cell) => {
           const key = formatYmd(cell.date);
           const ratio = availMap[key] ?? null;
-          const sym = ratio === null ? "—" : availabilitySymbol(ratio);
+          // 読み込み中は記号を出さない（「—」だと異常に見えるため）
+          const sym = availLoading ? "" : ratio === null ? "—" : availabilitySymbol(ratio);
           // 当日も予約できる（過ぎた時間帯の枠は GAS 側で空きから除外される）。過去日のみ選択不可。
           const isPast = cell.date < today;
           const isOther = cell.date.getMonth() !== month.getMonth();
@@ -162,7 +176,13 @@ function Calendar() {
       </div>
 
       {/* 凡例 */}
-      <p className="mt-3 text-sm text-muted">◎ 空きあり / ○ 残りわずか / × 満席</p>
+      {availLoading ? (
+        <p className="mt-3 text-sm text-muted" role="status">
+          空き状況を読み込んでいます…
+        </p>
+      ) : (
+        <p className="mt-3 text-sm text-muted">◎ 空きあり / ○ 残りわずか / × 満席</p>
+      )}
       <p className="mt-1 text-xs text-muted">
         ※ 当日のご予約も承ります。開始時刻を過ぎた枠はご予約いただけません。
       </p>
