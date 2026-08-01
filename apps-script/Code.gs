@@ -54,7 +54,25 @@ function ymdToDow_(ymd) {
   var p = ymd.split("-");
   return new Date(Date.UTC(+p[0], +p[1] - 1, +p[2], 12)).getUTCDay();
 }
+/** HOLIDAYS が網羅している年の集合。テーブルを更新すれば自動で追随する。 */
+var HOLIDAY_YEARS = (function () {
+  var years = {};
+  Object.keys(HOLIDAYS).forEach(function (k) { years[k.slice(0, 4)] = 1; });
+  return years;
+})();
+var HOLIDAY_WARNED_ = {};
 function isWeekendOrHoliday_(ymd) {
+  var year = String(ymd).slice(0, 4);
+  // 祝日テーブルが切れた年は、祝日が平日料金として計算されてしまう。
+  // 料金の挙動は変えず（土日判定のみで動く）、気づけるよう警告だけ残す。
+  if (!HOLIDAY_YEARS[year] && !HOLIDAY_WARNED_[year]) {
+    HOLIDAY_WARNED_[year] = 1;
+    console.warn(
+      "[holidays] " + year + " 年の祝日が未登録です（" + ymd + "）。" +
+      "祝日が平日料金として計算されます。Code.gs の HOLIDAYS と " +
+      "hoop-court/src/lib/holidays.ts、himawari-site/src/lib/gas/holidays.ts を更新してください。"
+    );
+  }
   var dow = ymdToDow_(ymd);
   return dow === 0 || dow === 6 || !!HOLIDAYS[ymd];
 }
@@ -395,7 +413,7 @@ function availabilityRange_(p) {
   var fromYmd = jstYmd_(new Date(p.from));
   var toYmd = jstYmd_(new Date(p.to));
   var reservations = readTable_("Reservations").filter(function (r) {
-    return String(r.court_id) === court_id && String(r.status) === "CONFIRMED" && String(r.mode) === "CHARTER";
+    return String(r.court_id) === court_id && isBlockingStatus_(r.status) && String(r.mode) === "CHARTER";
   });
   var overrides = readTable_("Slots").filter(function (s) {
     return String(s.court_id) === court_id && String(s.status) !== "OPEN";
@@ -429,6 +447,20 @@ function availabilityRange_(p) {
   }
   return { slots: slots };
 }
+/**
+ * 枠を占有しているとみなす予約ステータス。
+ *
+ * CONFIRMED（確定）に加え、COMPLETED（受付済み）も含める。
+ * 当日予約を解禁したことで「受付済みだが、まだ利用中＝終了時刻が未来」の予約が
+ * 生じるようになった。COMPLETED を外すと、受付した瞬間にその枠が空きに戻り、
+ * 利用中のコートへ別の予約が入ってしまう。
+ * NO_SHOW は来なかった枠なので対象外（売り直せる方が運用に合う）。
+ */
+var BLOCKING_STATUSES = ["CONFIRMED", "COMPLETED"];
+function isBlockingStatus_(status) {
+  return BLOCKING_STATUSES.indexOf(String(status)) >= 0;
+}
+
 function overlapsAny_(ranges, st, en) {
   for (var i = 0; i < ranges.length; i++) if (ranges[i][0] < en && ranges[i][1] > st) return true;
   return false;
@@ -530,8 +562,8 @@ function createReservationCore_(opts) {
   var lock = LockService.getScriptLock();
   lock.waitLock(20000);
   try {
-    var confirmed = readTable_("Reservations").filter(function (r) {
-      return String(r.court_id) === court_id && String(r.status) === "CONFIRMED";
+    var blocking = readTable_("Reservations").filter(function (r) {
+      return String(r.court_id) === court_id && isBlockingStatus_(r.status);
     });
     var amount;
     if (mode === "FREE") {
@@ -540,11 +572,11 @@ function createReservationCore_(opts) {
       if (headcount < 1 || headcount > FREE_MAX_HEADCOUNT) {
         throw fail_("フリーの人数は 1〜" + FREE_MAX_HEADCOUNT + " 名でご指定ください。", "P0007");
       }
-      var charterClash = confirmed.some(function (r) {
+      var charterClash = blocking.some(function (r) {
         return String(r.mode) === "CHARTER" && new Date(r.starts_at) < end && new Date(r.ends_at) > start;
       });
       if (charterClash) throw fail_("選択した時間帯は貸切のため、フリーはご利用いただけません。", "P0001");
-      var overlapHead = confirmed.filter(function (r) {
+      var overlapHead = blocking.filter(function (r) {
         return String(r.mode) === "FREE" && new Date(r.starts_at) < end && new Date(r.ends_at) > start;
       }).reduce(function (s, r) { return s + (Number(r.headcount) || 0); }, 0);
       if (overlapHead + headcount > FREE_MAX_HEADCOUNT) {
@@ -557,7 +589,7 @@ function createReservationCore_(opts) {
       if (isWeekendOrHoliday_(ymd) && durationMin % 60 !== 0) {
         throw fail_("土日祝の貸切は1時間単位でご指定ください。", "P0011");
       }
-      var overlap = confirmed.some(function (r) {
+      var overlap = blocking.some(function (r) {
         return new Date(r.starts_at) < end && new Date(r.ends_at) > start;
       });
       if (overlap) throw fail_("選択した時間帯はすでに予約済みです。", "P0001");
@@ -684,11 +716,24 @@ function findReservationRow_(rid) {
   var lower = key.toLowerCase();
   var rows = readTable_("Reservations");
   var i;
+  // 1) 内部ID（UUID）は一意なのでそのまま返す
   for (i = 0; i < rows.length; i++) if (String(rows[i].id) === key) return rows[i];
+  // 2) 予約番号で照合。R-{日付}-{UUID先頭4桁} は 65,536 通りしかなく、
+  //    同じ日に4桁が衝突しうる。黙って別人を受け付けるのが最悪なので、
+  //    CONFIRMED を優先し、それでも絞れなければエラーにして現場に気づかせる。
+  var matches = [];
   for (i = 0; i < rows.length; i++) {
-    if (String(rows[i].display_number).trim().toLowerCase() === lower) return rows[i];
+    if (String(rows[i].display_number).trim().toLowerCase() === lower) matches.push(rows[i]);
   }
-  return null;
+  if (matches.length === 0) return null;
+  if (matches.length === 1) return matches[0];
+  var stillConfirmed = matches.filter(function (r) { return String(r.status) === "CONFIRMED"; });
+  if (stillConfirmed.length === 1) return stillConfirmed[0];
+  throw fail_(
+    "予約番号「" + key + "」に一致する予約が " + matches.length + " 件あります。" +
+    "一覧から対象を選ぶか、予約IDで指定してください。",
+    "AMBIGUOUS"
+  );
 }
 function adminMarkPaid_(idToken, p) {
   requireAdmin_(idToken);
@@ -811,8 +856,8 @@ function adminSlotsList_(idToken, p) {
   if (!court_id) throw fail_("court_id は必須です。", "VALIDATION");
   var fromYmd = jstYmd_(new Date(p.from));
   var toYmd = jstYmd_(new Date(p.to));
-  var confirmed = readTable_("Reservations").filter(function (r) {
-    return String(r.court_id) === court_id && String(r.status) === "CONFIRMED";
+  var blocking = readTable_("Reservations").filter(function (r) {
+    return String(r.court_id) === court_id && isBlockingStatus_(r.status);
   });
   var overrides = readTable_("Slots").filter(function (s) {
     return String(s.court_id) === court_id && String(s.status) !== "OPEN";
@@ -830,7 +875,7 @@ function adminSlotsList_(idToken, p) {
       var st = new Date(sIso).getTime();
       var en = new Date(eIso).getTime();
 
-      var hits = confirmed.filter(function (r) {
+      var hits = blocking.filter(function (r) {
         return new Date(r.starts_at).getTime() < en && new Date(r.ends_at).getTime() > st;
       });
       var freeHead = hits.filter(function (r) { return String(r.mode) === "FREE"; })
