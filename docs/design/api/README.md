@@ -92,12 +92,12 @@ Content-Type: text/plain;charset=UTF-8
 | `admin.broadcast` / `admin.sales.summary` | — | ✅ | ✅ |
 | **`admin.reservations.create` / `cancel`** | — | — | ✅ |
 | **`admin.slots.list` / `set`** | — | — | ✅ |
-| **`admin.reservations.markRefunded`** | — | — | **未実装** |
+| **`admin.reservations.markRefunded`** | — | — | ✅（PR #17・未マージ） |
 
 > ⚠ **2026-08 に追加した4 action は、現行の管理画面（C）だけが使います。**
 > 旧管理画面（B）は追従していません。B を廃止するまでは、
 > **同じ操作が2つの画面から可能**な状態が続きます（同じ GAS・同じデータを見ます）。
 
-> ⚠ **`admin.reservations.markRefunded` を呼ぶ画面がまだありません。**
-> GAS 側だけ先に用意した状態です。UI ができるまで、返金の記録は
-> スプレッドシートで `payment_status` を `REFUNDED` に直接書き換えることになります。
+> ⚠ **`admin.reservations.markRefunded` は GAS Version 5 から使えます。**
+> 管理画面側（himawari-site PR #17）は実装済みですが、**GAS を反映してからデプロイ**します。
+> 逆にすると `unsupported action` になるボタンが本番に出ます。
