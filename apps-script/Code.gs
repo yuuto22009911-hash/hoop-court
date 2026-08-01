@@ -62,13 +62,24 @@ var HOLIDAY_YEARS = (function () {
   return years;
 })();
 var HOLIDAY_WARNED_ = {};
+/**
+ * 警告を実行ログに残す。
+ *
+ * console は V8 ランタイムにしか無い。このプロジェクトは Rhino の非推奨警告が出る
+ * 状態なので、console が無い環境でも落ちないよう Logger へ退避する。
+ * 料金計算の途中で ReferenceError を投げると、予約そのものが失敗する。
+ */
+function warn_(message) {
+  if (typeof console !== "undefined" && console && console.warn) console.warn(message);
+  else if (typeof Logger !== "undefined" && Logger) Logger.log(message);
+}
 function isWeekendOrHoliday_(ymd) {
   var year = String(ymd).slice(0, 4);
   // 祝日テーブルが切れた年は、祝日が平日料金として計算されてしまう。
   // 料金の挙動は変えず（土日判定のみで動く）、気づけるよう警告だけ残す。
   if (!HOLIDAY_YEARS[year] && !HOLIDAY_WARNED_[year]) {
     HOLIDAY_WARNED_[year] = 1;
-    console.warn(
+    warn_(
       "[holidays] " + year + " 年の祝日が未登録です（" + ymd + "）。" +
       "祝日が平日料金として計算されます。Code.gs の HOLIDAYS と " +
       "hoop-court/src/lib/holidays.ts、himawari-site/src/lib/gas/holidays.ts を更新してください。"

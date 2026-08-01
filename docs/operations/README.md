@@ -41,7 +41,7 @@
 | [03-scenarios-visit.md](./03-scenarios-visit.md) | 来場・受付・入金（S-07〜S-11） |
 | [04-scenarios-change.md](./04-scenarios-change.md) | 変更・キャンセル・No-Show・返金（S-12〜S-17 / S-24） |
 | [05-scenarios-slots.md](./05-scenarios-slots.md) | 枠・休業・配信・売上（S-18〜S-23） |
-| [06-scenarios-trouble.md](./06-scenarios-trouble.md) | トラブル対応（T-01〜T-10） |
+| [06-scenarios-trouble.md](./06-scenarios-trouble.md) | トラブル対応（T-01〜T-11） |
 | [07-system-map.md](./07-system-map.md) | **操作 ↔ 画面 ↔ action ↔ データ の全対応表** |
 
 ---

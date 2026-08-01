@@ -35,6 +35,7 @@
 | --- | --- |
 | `AUTH` / `FORBIDDEN` | 認証・権限 |
 | `NOT_FOUND` | 予約が見つからない |
+| `AMBIGUOUS` | 予約番号が複数の予約に一致した（同日に UUID 先頭4桁が衝突）。一覧から選ぶか予約IDで指定する |
 | `CONFIG` | `method` を保存しようとしたが `payment_method` 列が無い（`migrateSheets()` の実行漏れ） |
 
 ## 書き込まれる値

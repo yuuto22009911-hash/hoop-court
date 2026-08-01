@@ -13,7 +13,8 @@
 
 - **当日予約は解禁済み。** 拒否するのは「開始時刻 < 現在時刻」だけ（`P0005`）
 - **管理用の4 action が本番稼働中**: `admin.reservations.create` / `cancel` / `admin.slots.list` / `set`
-- **返金は `admin.reservations.markRefunded`**（未反映・UI 未実装）。キャンセルしただけでは売上から外れない
+- **返金は `admin.reservations.markRefunded`**（Version 5 で有効・未反映）。キャンセルしただけでは売上から外れない
+- **占有判定は `CONFIRMED` + `COMPLETED`**（`isBlockingStatus_`）。`status === "CONFIRMED"` と直書きしない
 - **PayPay は使えません**（加盟店契約が未了）。案内は**現金のみ**に統一済み。
   文言は [`docs/design/04-business-rules.md`](docs/design/04-business-rules.md) §7-B。**「PayPay で支払える」と書かない**
 
@@ -76,5 +77,5 @@ Cloudflare Pages + `@cloudflare/next-on-pages`（Edge Runtime）。
 | 場所 | 内容 |
 | --- | --- |
 | [`docs/design/`](docs/design/README.md) | 設計書。構成・データモデル・**API を action ごと**・業務ルール・運用手順 |
-| [`docs/operations/`](docs/operations/README.md) | 運用ガイド。場面別シナリオ34件と操作↔システム対応表 |
+| [`docs/operations/`](docs/operations/README.md) | 運用ガイド。場面別シナリオ35件と操作↔システム対応表 |
 | [`apps-script/README.md`](apps-script/README.md) | GAS のセットアップと再デプロイの鉄則 |

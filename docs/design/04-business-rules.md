@@ -62,7 +62,6 @@
 > 更新するときは **3ファイルすべて**を同時に直してください。片方だけだと見積と請求額がズレます。
 > `apps-script/Code.gs` の `HOLIDAYS` ／ `hoop-court/src/lib/holidays.ts` ／
 > `himawari-site/src/lib/gas/holidays.ts`。翌年分の告示は前年2月ごろに出ます。
-> `Code.gs` の `HOLIDAYS` と `src/lib/holidays.ts` を**同時に**更新してください。
 
 ---
 
