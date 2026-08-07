@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>React 超入門 #04 — 入力フォーム（打った文字を覚える）</title>
+<style>
+  :root {
+    --bg: #0f1720;
+    --panel: #16212e;
+    --panel2: #1c2a3a;
+    --ink: #e6edf3;
+    --muted: #9fb3c8;
+    --accent: #58a6ff;
+    --accent2: #7ee787;
+    --warn: #f0b849;
+    --danger: #ff7b72;
+    --border: #2a3a4d;
+    --code-bg: #0b1119;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.9;
+  }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 32px 20px 96px; }
+  header.hero {
+    background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 28px;
+  }
+  header.hero .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .08em; font-size: .82rem; }
+  header.hero h1 { margin: 6px 0 8px; font-size: 1.55rem; line-height: 1.4; }
+  header.hero p { margin: 0; color: var(--muted); }
+
+  .recap {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-left: 3px solid var(--warn); border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 26px;
+  }
+  .recap .k { color: var(--warn); font-weight: 700; }
+
+  section {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px 26px; margin-bottom: 22px;
+  }
+  h2 { font-size: 1.25rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+  .step-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; background: var(--accent2); color: #0b1119;
+    font-weight: 800; border-radius: 50%; font-size: .9rem; flex: none;
+  }
+  .lead { color: var(--muted); margin: 4px 0 16px; }
+  p { margin: 12px 0; }
+  strong { color: #fff; }
+  .big-point {
+    text-align: center; font-size: 1.12rem; font-weight: 700; line-height: 1.7;
+    padding: 20px; background: var(--code-bg); border: 1px dashed var(--accent);
+    border-radius: 10px; margin: 8px 0;
+  }
+  .big-point .accent { color: var(--accent); }
+  .big-point .accent2 { color: var(--accent2); }
+
+  /* 入力デモ */
+  .demo {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin: 18px 0;
+  }
+  .demo label { display: block; font-size: .85rem; color: var(--muted); margin-bottom: 6px; }
+  .demo input {
+    width: 100%; font: inherit; padding: 10px 12px; border-radius: 8px;
+    border: 1px solid var(--border); background: var(--panel2); color: var(--ink);
+  }
+  .demo input:focus { outline: none; border-color: var(--accent); }
+  .demo .echo { margin-top: 14px; font-size: .95rem; }
+  .demo .echo b { color: var(--accent2); }
+  .demo .count { color: var(--muted); font-size: .82rem; }
+  .demo .btn {
+    margin-top: 14px; font: inherit; font-weight: 700; border: none;
+    padding: 10px 22px; border-radius: 8px; background: var(--accent); color: #0b1119;
+  }
+  .demo .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 8px;
+    padding: 14px 16px; overflow-x: auto; font-size: .86rem; line-height: 1.7;
+  }
+  pre code { font-family: "SF Mono", Consolas, monospace; color: #c9d6e2; }
+  .cmt { color: var(--muted); }
+  .kw { color: #ff9db3; }
+  .fn { color: var(--accent2); }
+  .tagc { color: var(--accent); }
+  .str { color: #a5d6ff; }
+  code.inline {
+    background: var(--code-bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 6px; font-size: .88em; color: var(--accent2);
+    font-family: "SF Mono", Consolas, monospace;
+  }
+  .callout {
+    border-radius: 8px; padding: 14px 16px; margin: 16px 0;
+    border: 1px solid var(--border); background: var(--panel2); border-left: 3px solid var(--accent2);
+  }
+  .callout.warn { border-left-color: var(--warn); }
+  .callout.trap { border-left-color: var(--danger); }
+  .callout .k { font-weight: 700; color: var(--accent2); }
+  .callout.warn .k { color: var(--warn); }
+  .callout.trap .k { color: var(--danger); }
+
+  .loop { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; background: var(--code-bg); border: 1px solid var(--border); border-radius: 10px; padding: 16px; margin: 16px 0; font-size: .88rem; }
+  .loop .box { background: var(--panel2); border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px; font-weight: 600; }
+  .loop .box.a { border-color: var(--warn); color: var(--warn); }
+  .loop .box.b { border-color: var(--accent2); color: var(--accent2); }
+  .loop .box.c { border-color: var(--accent); color: var(--accent); }
+  .loop .arrow { color: var(--muted); font-weight: 800; }
+
+  .summary { background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%); }
+  .summary ul { margin: 8px 0 0; padding-left: 22px; }
+  .summary li { margin: 8px 0; }
+  .glossary dt { font-weight: 700; color: var(--accent2); margin-top: 12px; }
+  .glossary dd { margin: 2px 0 0; }
+  footer { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 40px; }
+  .filelabel { font-size: .74rem; color: var(--muted); font-family: monospace; background: var(--panel2); border: 1px solid var(--border); border-bottom: none; border-radius: 8px 8px 0 0; padding: 4px 12px; display: inline-block; margin-bottom: -6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">REACT 超入門 #04</div>
+    <h1>入力フォーム<br />— 打った文字を State で覚える</h1>
+    <p>前回の State の応用。今回は、あなたの予約アプリの「団体名」入力を例にやさしく。</p>
+  </header>
+
+  <div class="recap">
+    <span class="k">前回(#03)の復習：</span> State＝部品が持つ「変化する値」。
+    <code class="inline">setCount</code> で変えると画面が描き直される、でした。
+    今回はその「変わる値」が<strong>入力した文字</strong>になります。
+  </div>
+
+  <section>
+    <h2><span class="step-badge">1</span>まず触ってみる</h2>
+    <p class="lead">下の入力欄に文字を打つと、下にリアルタイムで反映されます。</p>
+    <div class="demo">
+      <label>団体名</label>
+      <input id="inp" type="text" placeholder="例：向日葵バスケ部" maxlength="20" />
+      <div class="echo">入力中の文字：<b id="echo">（まだ何も入力していません）</b></div>
+      <div class="count"><span id="cnt">0</span> / 20 文字</div>
+      <button class="btn" id="go" type="button" disabled>次へ進む</button>
+    </div>
+    <p>この「今、入力欄に入っている文字」が <strong>State</strong> です。1文字打つたびに State が変わり、画面（反映表示・文字数・ボタンの押せる/押せない）も変わっています。</p>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">2</span>React の考え方：入力欄の値＝State</h2>
+    <div class="big-point">
+      「入力欄が文字を覚える」のではなく<br />
+      <span class="accent2">React の State が文字を覚える</span>。<br />
+      入力欄はその State を<span class="accent">映しているだけ</span>。
+    </div>
+    <p>ここが少し不思議なところ。ふつうは「入力欄に文字が溜まっていく」と考えますよね。React では逆で、<strong>本当の文字は State に入っていて、入力欄はそれを表示する鏡</strong>だと考えます。この作り方を <strong>「制御コンポーネント」</strong> と呼びます（名前は覚えなくてOK）。</p>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">3</span>2つの部品でできている</h2>
+    <p>入力欄には、いつも次の2つをセットで書きます。</p>
+    <div class="loop">
+      <span class="box b">① value = 今の State を表示</span>
+      <span class="arrow">＋</span>
+      <span class="box a">② onChange = 打つたび State を更新</span>
+    </div>
+    <p>この2つで「打つ → State更新 → 画面に反映」のループが回ります。#03 のカウンター（押す→State更新→再描画）と全く同じ仕組みです。</p>
+    <div class="loop">
+      <span class="box a">キーを打つ</span><span class="arrow">→</span>
+      <span class="box">onChange が動く</span><span class="arrow">→</span>
+      <span class="box b">State が新しい文字に</span><span class="arrow">→</span>
+      <span class="box c">value に反映（再描画）</span>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">4</span>コードで見る</h2>
+    <p class="lead">やさしい形にするとこれだけです。</p>
+<pre><code><span class="kw">function</span> <span class="fn">Form</span>() {
+  <span class="kw">const</span> [name, setName] = <span class="fn">useState</span>(<span class="str">""</span>);   <span class="cmt">// 最初は空っぽの文字</span>
+
+  <span class="kw">return</span> (
+    <span class="tagc">&lt;input</span>
+      value={name}                              <span class="cmt">// ① 今の State を表示</span>
+      onChange={(e) =&gt; <span class="fn">setName</span>(e.target.value)}  <span class="cmt">// ② 打つたび更新</span>
+    <span class="tagc">/&gt;</span>
+  );
+}</code></pre>
+    <ul>
+      <li><code class="inline">useState("")</code> …… 最初は空文字の State を用意</li>
+      <li><code class="inline">value={name}</code> …… 入力欄には「今の State」を映す</li>
+      <li><code class="inline">e.target.value</code> …… 「今、入力欄に打たれた文字」のこと</li>
+      <li><code class="inline">setName(...)</code> …… その文字で State を更新（→ 再描画）</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">5</span>あなたのアプリでは（実物）</h2>
+    <p>予約画面の「団体名」入力は、まさにこの形で書かれています👇</p>
+    <div class="filelabel">src/app/reserve/[date]/page.tsx</div>
+<pre><code><span class="kw">const</span> [groupName, setGroupName] = <span class="fn">useState</span>(<span class="str">""</span>);
+...
+<span class="tagc">&lt;input</span>
+  type=<span class="str">"text"</span>
+  value={groupName}
+  onChange={(e) =&gt; <span class="fn">setGroupName</span>(e.target.value)}
+<span class="tagc">/&gt;</span></code></pre>
+    <p>さらに、この <code class="inline">groupName</code> を使って「<strong>団体名が空ならボタンを押せなくする</strong>」こともできます（上のデモのボタンと同じ挙動）。</p>
+<pre><code><span class="cmt">// 団体名が1文字以上あるときだけ「次へ」を押せる</span>
+<span class="kw">const</span> canProceed = groupName.trim().length &gt; <span class="str">0</span>;
+...
+<span class="tagc">&lt;button</span> disabled={!canProceed}<span class="tagc">&gt;</span>次へ進む<span class="tagc">&lt;/button&gt;</span></code></pre>
+    <div class="callout">
+      <span class="k">つながった！</span><br />
+      入力（State）→ その値でボタンの状態を決める。<strong>State を中心に画面ぜんぶが決まる</strong>、という React の考え方が、あなたのアプリで実際に動いています。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">!</span>よくあるつまずき</h2>
+    <div class="callout trap">
+      <span class="k">value だけ書いて onChange を忘れる</span><br />
+      <code class="inline">&lt;input value={name} /&gt;</code> だけだと、文字を打っても<strong>何も入力できません</strong>（State が変わらないから、鏡がずっと同じものを映し続ける）。<strong>value と onChange は必ずセット</strong>。
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">★</span>用語ミニ辞典</h2>
+    <dl class="glossary">
+      <dt>制御コンポーネント</dt>
+      <dd>入力欄の値を<strong>State で管理する</strong>作り方。React の基本スタイル。</dd>
+      <dt>value</dt>
+      <dd>入力欄に「今表示する文字」。State を指定する。</dd>
+      <dt>onChange</dt>
+      <dd>入力欄の文字が変わった<strong>瞬間に動く</strong>合図。ここで State を更新する。</dd>
+      <dt>e.target.value</dt>
+      <dd>「今、入力欄に入っている文字」を取り出す書き方。</dd>
+    </dl>
+  </section>
+
+  <section class="summary">
+    <h2><span class="step-badge">✓</span>今日のまとめ</h2>
+    <ul>
+      <li>入力フォームは「<strong>入力欄の値＝State</strong>」で作る（制御コンポーネント）。</li>
+      <li><code class="inline">value</code>（今の State を表示）と <code class="inline">onChange</code>（打つたび更新）を<strong>必ずセット</strong>で書く。</li>
+      <li>仕組みは #03 のカウンターと同じ：<strong>打つ→State更新→再描画</strong>。</li>
+      <li>State の値で「ボタンを押せる/押せない」なども決められる（<code class="inline">disabled</code>）。</li>
+      <li>あなたの予約アプリの団体名入力が、まさにこの形。</li>
+    </ul>
+  </section>
+
+  <footer>React 超入門 #04 ・ 次回 #05 は「たくさんのデータを並べて表示する（リストと map）」＝ カレンダーの日付一覧のような繰り返し表示を。</footer>
+
+</div>
+
+<script>
+  // #04 の体験用：入力欄の値＝State を体感するデモ（React が裏でやることを手動で再現）
+  (function () {
+    var name = "";                       // ← これが State のつもり
+    var inp = document.getElementById("inp");
+    var echo = document.getElementById("echo");
+    var cnt = document.getElementById("cnt");
+    var go = document.getElementById("go");
+    function render() {                  // ← 画面を描き直す
+      echo.textContent = name.length ? name : "（まだ何も入力していません）";
+      cnt.textContent = name.length;
+      go.disabled = name.trim().length === 0;   // 空ならボタンを押せない
+    }
+    inp.addEventListener("input", function (e) {
+      name = e.target.value;             // ① 打たれた文字で State 更新
+      render();                          // ② 描き直す（Reactは自動でやる）
+    });
+    render();
+  })();
+</script>
+</body>
+</html>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>React 超入門 #08 — 全部つなげて1画面を読む（総まとめ）</title>
+<style>
+  :root {
+    --bg: #0f1720;
+    --panel: #16212e;
+    --panel2: #1c2a3a;
+    --ink: #e6edf3;
+    --muted: #9fb3c8;
+    --accent: #58a6ff;
+    --accent2: #7ee787;
+    --warn: #f0b849;
+    --danger: #ff7b72;
+    --purple: #c99bff;
+    --border: #2a3a4d;
+    --code-bg: #0b1119;
+    --radius: 12px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+      "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+    background: var(--bg); color: var(--ink); line-height: 1.9;
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 32px 20px 96px; }
+  header.hero {
+    background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 28px; margin-bottom: 28px;
+  }
+  header.hero .eyebrow { color: var(--accent); font-weight: 700; letter-spacing: .08em; font-size: .82rem; }
+  header.hero h1 { margin: 6px 0 8px; font-size: 1.55rem; line-height: 1.4; }
+  header.hero p { margin: 0; color: var(--muted); }
+
+  .recap {
+    background: var(--panel2); border: 1px solid var(--border);
+    border-left: 3px solid var(--warn); border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 26px;
+  }
+  .recap .k { color: var(--warn); font-weight: 700; }
+
+  section {
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 24px 26px; margin-bottom: 22px;
+  }
+  h2 { font-size: 1.25rem; margin: 0 0 4px; display: flex; align-items: center; gap: 10px; }
+  .step-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; background: var(--accent2); color: #0b1119;
+    font-weight: 800; border-radius: 50%; font-size: .9rem; flex: none;
+  }
+  .lead { color: var(--muted); margin: 4px 0 16px; }
+  p { margin: 12px 0; }
+  strong { color: #fff; }
+
+  /* 道具の早見表 */
+  .toolmap { width: 100%; border-collapse: collapse; margin: 8px 0 4px; font-size: .92rem; }
+  .toolmap th, .toolmap td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+  .toolmap th { background: var(--panel2); color: var(--accent2); }
+  .toolmap td code { color: var(--accent2); }
+  .badge { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 999px; font-family: monospace; }
+  .b-cmp { background: rgba(88,166,255,.15); color: var(--accent); border: 1px solid var(--accent); }
+  .b-props { background: rgba(126,231,135,.13); color: var(--accent2); border: 1px solid var(--accent2); }
+  .b-state { background: rgba(240,184,73,.13); color: var(--warn); border: 1px solid var(--warn); }
+  .b-eff { background: rgba(201,155,255,.13); color: var(--purple); border: 1px solid var(--purple); }
+  .b-list { background: rgba(255,123,114,.12); color: var(--danger); border: 1px solid var(--danger); }
+
+  pre {
+    background: var(--code-bg); border: 1px solid var(--border);
+    border-radius: 8px; padding: 16px; overflow-x: auto; font-size: .84rem; line-height: 1.75;
+  }
+  pre code { font-family: "SF Mono", Consolas, monospace; color: #c9d6e2; }
+  .cmt { color: var(--muted); }
+  .kw { color: #ff9db3; }
+  .fn { color: var(--accent2); }
+  .tagc { color: var(--accent); }
+  .str { color: #a5d6ff; }
+  .num { color: #f0b849; }
+  /* コード内の注釈タグ */
+  .ann { font-weight: 700; padding: 0 5px; border-radius: 4px; font-size: .78em; }
+  .ann.cmp { background: rgba(88,166,255,.2); color: var(--accent); }
+  .ann.props { background: rgba(126,231,135,.18); color: var(--accent2); }
+  .ann.state { background: rgba(240,184,73,.18); color: var(--warn); }
+  .ann.eff { background: rgba(201,155,255,.18); color: var(--purple); }
+  .ann.list { background: rgba(255,123,114,.18); color: var(--danger); }
+  .ann.cond { background: rgba(255,255,255,.1); color: #fff; }
+
+  code.inline {
+    background: var(--code-bg); border: 1px solid var(--border);
+    padding: 1px 6px; border-radius: 6px; font-size: .88em; color: var(--accent2);
+    font-family: "SF Mono", Consolas, monospace;
+  }
+  .callout {
+    border-radius: 8px; padding: 14px 16px; margin: 16px 0;
+    border: 1px solid var(--border); background: var(--panel2); border-left: 3px solid var(--accent2);
+  }
+  .callout .k { font-weight: 700; color: var(--accent2); }
+
+  /* 一巡の流れ */
+  .cycle { display: flex; flex-direction: column; gap: 8px; margin: 16px 0; }
+  .cycle .row { display: flex; gap: 12px; align-items: center; background: var(--code-bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; }
+  .cycle .row .n { flex: none; width: 26px; height: 26px; border-radius: 50%; background: var(--accent); color: #0b1119; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: .8rem; }
+  .cycle .row .txt { font-size: .92rem; }
+  .cycle .row .txt b { color: var(--accent2); }
+
+  .summary { background: linear-gradient(135deg, #1a2a3f 0%, #16212e 100%); }
+  .summary ul { margin: 8px 0 0; padding-left: 22px; }
+  .summary li { margin: 8px 0; }
+  footer { color: var(--muted); font-size: .85rem; text-align: center; margin-top: 40px; }
+  .filelabel { font-size: .74rem; color: var(--muted); font-family: monospace; background: var(--panel2); border: 1px solid var(--border); border-bottom: none; border-radius: 8px 8px 0 0; padding: 4px 12px; display: inline-block; margin-bottom: -6px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow">REACT 超入門 #08 — 総まとめ</div>
+    <h1>全部つなげて、1画面を読む</h1>
+    <p>#00〜#07 で学んだ道具が、1つの画面でどう組み合わさるか。バラバラの知識が「腑に落ちる」回です。</p>
+  </header>
+
+  <div class="recap">
+    <span class="k">今回のゴール：</span> 新しいことは学びません。これまでの<strong>7つの道具</strong>が、簡単な予約画面の中で
+    どう協力しているかを<strong>色分けして読む</strong>だけ。読めたら、React の基礎は卒業です。
+  </div>
+
+  <section>
+    <h2><span class="step-badge">1</span>7つの道具・早見表</h2>
+    <table class="toolmap">
+      <tr><th>#</th><th>道具</th><th>ひとことで</th></tr>
+      <tr><td>01</td><td><span class="badge b-cmp">コンポーネント</span></td><td>画面を返す関数（部品）</td></tr>
+      <tr><td>02</td><td><span class="badge b-props">Props</span></td><td>親→子へ渡すデータ（読むだけ）</td></tr>
+      <tr><td>03</td><td><span class="badge b-state">State</span></td><td>変化する値。変えると再描画</td></tr>
+      <tr><td>04</td><td><span class="badge b-state">入力</span></td><td><code>value</code>＋<code>onChange</code>で State に結ぶ</td></tr>
+      <tr><td>05</td><td><span class="badge b-list">リスト/map</span></td><td>配列→部品の並び（<code>key</code>必須）</td></tr>
+      <tr><td>06</td><td><span class="badge b-cond" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid #888;">条件表示</span></td><td><code>? :</code> / <code>&amp;&amp;</code> / 早期return</td></tr>
+      <tr><td>07</td><td><span class="badge b-eff">useEffect</span></td><td>画面表示後に自動実行（データ取得）</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">2</span>これを読み解く（色が道具の対応）</h2>
+    <p class="lead">簡単にした予約画面です。右の色タグが「どの道具か」を示します。</p>
+    <div class="filelabel">簡略版：予約画面 ReservePage.jsx</div>
+<pre><code><span class="kw">function</span> <span class="fn">ReservePage</span>() {                            <span class="ann cmp">01 部品</span>
+
+  <span class="kw">const</span> [slots, setSlots] = <span class="fn">useState</span>([]);          <span class="ann state">03 State</span>
+  <span class="kw">const</span> [groupName, setGroupName] = <span class="fn">useState</span>(<span class="str">""</span>);   <span class="ann state">03/04</span>
+
+  <span class="fn">useEffect</span>(() =&gt; {                                <span class="ann eff">07 useEffect</span>
+    <span class="fn">fetchSlots</span>().<span class="fn">then</span>((data) =&gt; <span class="fn">setSlots</span>(data));   <span class="cmt">// 開いたら取得</span>
+  }, []);                                          <span class="cmt">// 最初の1回だけ</span>
+
+  <span class="kw">const</span> canProceed = groupName.<span class="fn">trim</span>().length &gt; <span class="num">0</span>;  <span class="cmt">// 派生値</span>
+
+  <span class="kw">return</span> (
+    <span class="tagc">&lt;div&gt;</span>
+      {slots.<span class="fn">map</span>((s) =&gt; (                          <span class="ann list">05 リスト</span>
+        <span class="tagc">&lt;SlotButton</span> key={s.id} time={s.time} ok={s.ok} <span class="tagc">/&gt;</span>  <span class="ann props">02 Props</span>
+      ))}
+
+      <span class="tagc">&lt;input</span>                                      <span class="ann state">04 入力</span>
+        value={groupName}
+        onChange={(e) =&gt; <span class="fn">setGroupName</span>(e.target.value)}
+      <span class="tagc">/&gt;</span>
+
+      {canProceed                                  <span class="ann cond">06 条件</span>
+        ? <span class="tagc">&lt;button&gt;</span>次へ進む<span class="tagc">&lt;/button&gt;</span>
+        : <span class="tagc">&lt;p&gt;</span>団体名を入力してください<span class="tagc">&lt;/p&gt;</span>}
+    <span class="tagc">&lt;/div&gt;</span>
+  );
+}
+
+<span class="kw">function</span> <span class="fn">SlotButton</span>(props) {                        <span class="ann cmp">01 部品</span>
+  <span class="kw">return</span> (
+    <span class="tagc">&lt;button&gt;</span>
+      {props.time} — {props.ok ? <span class="str">"◎"</span> : <span class="str">"×"</span>}      <span class="ann cond">06 条件</span> <span class="ann props">02 Props</span>
+    <span class="tagc">&lt;/button&gt;</span>
+  );
+}</code></pre>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">3</span>1行ずつ、日本語で読む</h2>
+    <ul>
+      <li><span class="badge b-cmp">01</span> <code class="inline">ReservePage</code> と <code class="inline">SlotButton</code> は<strong>部品</strong>（画面を返す関数）。大きい部品の中に小さい部品を置く。</li>
+      <li><span class="badge b-state">03</span> <code class="inline">slots</code>（空き枠）と <code class="inline">groupName</code>（入力文字）は<strong>State</strong>。変わると画面が描き直される。</li>
+      <li><span class="badge b-eff">07</span> <code class="inline">useEffect</code> が「開いた瞬間」に <code class="inline">fetchSlots()</code> でデータ取得 → <code class="inline">setSlots</code> で State に入れる。</li>
+      <li><span class="badge b-list">05</span> <code class="inline">slots.map(...)</code> で、空き枠の数だけ <code class="inline">SlotButton</code> を<strong>並べる</strong>（<code class="inline">key</code>付き）。</li>
+      <li><span class="badge b-props">02</span> 各 <code class="inline">SlotButton</code> に <code class="inline">time</code> と <code class="inline">ok</code> を<strong>Props</strong>で渡す。子はそれを表示するだけ。</li>
+      <li><span class="badge b-state">04</span> <code class="inline">input</code> は <code class="inline">value</code>＋<code class="inline">onChange</code> で <code class="inline">groupName</code> に結ばれた<strong>入力欄</strong>。</li>
+      <li><span class="badge b-cond" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid #888;">06</span> <code class="inline">canProceed ? ... : ...</code> と <code class="inline">props.ok ? "◎" : "×"</code> が<strong>条件表示</strong>。</li>
+    </ul>
+    <div class="callout">
+      <span class="k">気づけましたか？</span><br />
+      7回に分けて学んだ道具が、たった30行の中に<strong>全部同居</strong>しています。実際のアプリはこれが大きくなっただけ。<strong>読める道具が増えれば、大きなコードも「知ってる部品の集まり」に見えてきます。</strong>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="step-badge">4</span>ユーザー操作から画面更新までの一巡</h2>
+    <p class="lead">「団体名を入力する」を例に、道具がどうバトンを渡すか。</p>
+    <div class="cycle">
+      <div class="row"><span class="n">1</span><span class="txt">ページを開く → <b>useEffect(07)</b> が空き枠を取得 → <b>State(03)</b> 更新</span></div>
+      <div class="row"><span class="n">2</span><span class="txt"><b>map(05)</b> が枠の数だけ <b>SlotButton(01)</b> を並べ、<b>Props(02)</b> で時刻と◎/×を渡す</span></div>
+      <div class="row"><span class="n">3</span><span class="txt">ユーザーが団体名を入力 → <b>onChange(04)</b> が <b>State(03)</b> <code>groupName</code> を更新</span></div>
+      <div class="row"><span class="n">4</span><span class="txt">State が変わったので React が<b>再描画</b> → <code>canProceed</code> を計算し直す</span></div>
+      <div class="row"><span class="n">5</span><span class="txt"><b>条件表示(06)</b> が「次へ進むボタン」か「入力を促す文」かを出し分ける</span></div>
+    </div>
+    <p>この「操作 → State更新 → 再描画 → 表示が変わる」のループこそ、#00 で言った <strong>「UI ＝ f(state)」</strong> の正体です。全部つながりました。</p>
+  </section>
+
+  <section class="summary">
+    <h2><span class="step-badge">✓</span>基礎編・卒業チェック</h2>
+    <p>下の文がスッと読めたら、React の基礎はOKです👏</p>
+    <ul>
+      <li>画面は<strong>部品(コンポーネント)</strong>の組み合わせで作る。</li>
+      <li>部品には<strong>Props</strong>で外からデータを渡す（子は読むだけ）。</li>
+      <li>変化する値は<strong>State</strong>。<code class="inline">setXxx</code>で変えると<strong>再描画</strong>される。</li>
+      <li>入力欄は <code class="inline">value</code>＋<code class="inline">onChange</code> で State に結ぶ。</li>
+      <li>繰り返しは <code class="inline">map</code>＋<code class="inline">key</code>、出し分けは <code class="inline">? :</code>／<code class="inline">&amp;&amp;</code>／早期return。</li>
+      <li>外とのやりとりは <code class="inline">useEffect</code>（開いたら取得など）。</li>
+    </ul>
+  </section>
+
+  <footer>React 超入門 #08（総まとめ）・ おつかれさまでした！ 次は「実際に手を動かす小さな課題」や、あなたのアプリの本物のコードを1ファイル通読、などに進めます。</footer>
+
+</div>
+</body>
+</html>
