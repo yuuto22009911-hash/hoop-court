@@ -69,35 +69,27 @@ Content-Type: text/plain;charset=UTF-8
 
 ## 使用しているクライアント
 
-クライアントは**3つ**あります。`hoop-court` の `/admin` は**廃止予定**ですが、現存していて
-同じ GAS を参照します。
+クライアントは**2つ**です。`hoop-court` の旧 `/admin` は **2026-10 に削除**しました
+（`/admin/*` は C へリダイレクト）。
 
 | # | クライアント | 実装 |
 | --- | --- | --- |
 | A | LIFF 予約画面（お客様） | `hoop-court` `src/lib/gas.ts` |
-| B | **旧 管理画面（廃止予定）** | 同上（`hoop-court` `src/app/admin/`） |
-| C | 現行 管理画面 | `himawari-site` `src/lib/gas/client.ts` |
+| C | 管理画面 | `himawari-site` `src/lib/gas/client.ts` |
 
-| action | A 予約 | B 旧管理 | C 管理 |
-| --- | --- | --- | --- |
-| `courts.list` | ✅ | ✅ | ✅ |
-| `availability.range` | ✅ | ✅ | ✅ |
-| `auth.me` / `auth.register` | ✅ | — | — |
-| `reservations.create` / `listMine` / `cancel` | ✅ | — | — |
-| `admin.login` / `session` / `logout` | — | ✅ | ✅ |
-| `admin.reservations.list` | — | ✅ | ✅ |
-| `admin.reservations.markPaid` / `markNoShow` | — | ✅ | ✅ |
-| `admin.checkin` | — | ✅ | ✅ |
-| `admin.slots.bulkUpdate` | — | ✅ | ✅ |
-| `admin.broadcast` / `admin.sales.summary` | — | ✅ | ✅ |
-| **`admin.reservations.create` / `cancel`** | — | — | ✅ |
-| **`admin.slots.list` / `set`** | — | — | ✅ |
-| **`admin.reservations.markRefunded`** | — | — | ✅（PR #17・未マージ） |
+| action | A 予約 | C 管理 |
+| --- | --- | --- |
+| `courts.list` | ✅ | ✅ |
+| `availability.range` | ✅ | ✅ |
+| `auth.me` / `auth.register` | ✅ | — |
+| `reservations.create` / `listMine` / `cancel` | ✅ | — |
+| `admin.login` / `session` / `logout` | — | ✅ |
+| `admin.reservations.list` | — | ✅ |
+| `admin.reservations.markPaid` / `markNoShow` / `markRefunded` | — | ✅ |
+| `admin.reservations.create` / `cancel` | — | ✅ |
+| `admin.checkin` | — | ✅ |
+| `admin.slots.list` / `set` / `bulkUpdate` | — | ✅ |
+| `admin.broadcast` / `admin.sales.summary` | — | ✅ |
 
-> ⚠ **2026-08 に追加した4 action は、現行の管理画面（C）だけが使います。**
-> 旧管理画面（B）は追従していません。B を廃止するまでは、
-> **同じ操作が2つの画面から可能**な状態が続きます（同じ GAS・同じデータを見ます）。
-
-> ⚠ **`admin.reservations.markRefunded` は GAS Version 5 から使えます。**
-> 管理画面側（himawari-site PR #17）は実装済みですが、**GAS を反映してからデプロイ**します。
-> 逆にすると `unsupported action` になるボタンが本番に出ます。
+> 旧管理画面（B）が呼んでいた action はすべて C も使っているため、B の削除で呼ばれなくなった action はありません。
+> **action を削除・改名しない原則（CLAUDE.md）は引き続き有効**です。

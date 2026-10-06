@@ -29,6 +29,10 @@ export default function MyPage() {
 
 function MyPageInner() {
   const [items, setItems] = useState<Reservation[] | null>(null);
+  // 読込失敗を「予約0件」と区別する。0件と表示すると、予約が消えたと思って
+  // 予約し直してしまう（二重予約の誘因になる）。
+  const [loadError, setLoadError] = useState(false);
+  const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [qrId, setQrId] = useState<string | null>(null);
   const qrRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -43,17 +47,20 @@ function MyPageInner() {
   }, [qrId]);
 
   async function load() {
+    setLoadError(false);
     try {
       const r = await listMyReservations(getIdToken());
       setItems(r.reservations);
     } catch (err) {
       console.error(err);
-      setItems([]);
+      setLoadError(true);
     }
   }
 
   async function handleCancel(id: string) {
+    if (cancelingId) return;
     if (!confirm("予約をキャンセルしてよろしいですか？")) return;
+    setCancelingId(id);
     try {
       const r = await cancelReservation(getIdToken(), id);
       alert(
@@ -63,10 +70,31 @@ function MyPageInner() {
       );
       await load();
     } catch (err) {
-      alert(err instanceof Error ? err.message : String(err));
+      console.error(err);
+      alert(
+        "キャンセルを完了できませんでした。通信状況をご確認のうえ、予約一覧を更新してキャンセルされているかご確認ください。"
+      );
+      await load();
+    } finally {
+      setCancelingId(null);
     }
   }
 
+  if (loadError) {
+    return (
+      <div className="text-center py-6">
+        <p className="mb-1">予約を読み込めませんでした。</p>
+        <p className="text-sm text-muted mb-4">
+          通信状況をご確認のうえ、もう一度お試しください。
+          <br />
+          解決しない場合はお電話（090-7889-2729）でお問い合わせください。
+        </p>
+        <button type="button" className="btn btn-primary" onClick={() => load()}>
+          再読み込み
+        </button>
+      </div>
+    );
+  }
   if (items === null) return <p className="text-muted">読み込み中...</p>;
   if (items.length === 0) {
     return <p className="text-muted">まだ予約はありません。</p>;
@@ -92,7 +120,7 @@ function MyPageInner() {
             {formatYen(Number(r.total_amount))}（
             {r.payment_status === "PAID" ? "支払い済み" : "未払い・当日現地で現金"}）
           </div>
-          {r.status === "CONFIRMED" && (
+          {r.status === "CONFIRMED" && new Date(r.ends_at).getTime() > Date.now() && (
             <div className="flex gap-2 mt-2">
               <button
                 type="button"
@@ -101,13 +129,16 @@ function MyPageInner() {
               >
                 入場 QR
               </button>
-              <button
-                type="button"
-                className="btn btn-ghost flex-1"
-                onClick={() => handleCancel(r.id)}
-              >
-                キャンセル
-              </button>
+              {new Date(r.starts_at).getTime() > Date.now() && (
+                <button
+                  type="button"
+                  className="btn btn-ghost flex-1"
+                  disabled={cancelingId !== null}
+                  onClick={() => handleCancel(r.id)}
+                >
+                  {cancelingId === r.id ? "キャンセル中…" : "キャンセル"}
+                </button>
+              )}
             </div>
           )}
         </article>
