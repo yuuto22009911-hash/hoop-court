@@ -33,7 +33,7 @@
 > **エンドポイントを変更したら、両方のリポジトリで再ビルド／再デプロイが必要。**
 > `NEXT_PUBLIC_*` / `PUBLIC_*` はビルド時にバンドルへ埋め込まれるため、変数を変えただけでは反映されない。
 
-> 管理画面は `himawari-site` に統一済み。`hoop-court` 側の `/admin` は切り替え確認後に廃止予定。
+> 管理画面は `himawari-site` に統一済み。`hoop-court` 側の `/admin` は 2026-10 に廃止（リダイレクト）。
 
 ## 🚫 再デプロイの鉄則
 
@@ -71,7 +71,7 @@
 > `admin.checkin` は QR に入っている予約IDだけでなく、**予約番号（`R-2026-06-26-d1f8`）でも受付**できる
 > （iPhone など QR スキャン非対応端末での運用対策）。
 
-> 管理系 API の認証は2系統。**ID/パスワードのセッショントークン**（`/admin/login`、LINE不要）
+> 管理系 API の認証は2系統。**ID/パスワードのセッショントークン**（himawari-site の管理画面、LINE不要）
 > または **LINE userId の許可リスト**（`ADMIN_USER_IDS` / `Admins` シート）のいずれかで通る。
 
 ## セットアップ手順
@@ -157,14 +157,14 @@ GitHub → リポジトリ Settings → Secrets and variables → Actions → **
 
 ## 管理ログイン（ID/パスワード・LINE不要）
 
-PC のブラウザ等から `/admin/login` に **ユーザーID＋パスワード**で入れる。設定手順:
+管理画面（himawari-site の `/admin`）に **ユーザーID＋パスワード**で入れる。設定手順:
 
 1. プロジェクトの設定 → スクリプト プロパティに次を一時的に追加
    - `ADMIN_LOGIN_USER` … 例 `himawari-admin`
    - `ADMIN_LOGIN_PASSWORD` … 強固なパスワード
 2. エディタで関数 **`setAdminLogin`** を実行
    - `AdminAuth` シートに **ソルト＋反復SHA-256ハッシュ**で保存し、`ADMIN_LOGIN_PASSWORD`（平文）は自動削除される。
-3. フロントの `/admin/login` に ID/パスワードを入力 → 管理画面へ。
+3. 管理画面（https://himawari-co.pages.dev/admin）で ID/パスワードを入力 → 管理画面へ。
 
 - パスワード変更も同じ2手順を再実行（同一 `ADMIN_LOGIN_USER` は上書き）。
 - ログイン成功でランダムなセッショントークンを発行し、`CacheService` で保持（6時間・操作で自動延長）。

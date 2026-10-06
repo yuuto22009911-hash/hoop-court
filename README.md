@@ -106,20 +106,11 @@ npm run build
 > 参照して管理画面がログイン不能になった事故がある。識別方法・再デプロイの鉄則・影響範囲は
 > [`apps-script/README.md`](apps-script/README.md) の冒頭を参照。
 
-## 管理画面 (`/admin`)
+## 管理画面
 
-> 📌 管理画面は **`himawari-site`（Astro）側に統一済み**。本リポジトリの `/admin` は
-> 切り替え確認後に廃止予定で、現在は参照用に残している。両者は同じ GAS を参照する。
-
-ダッシュボード / 予約一覧 / QRチェックイン / 枠カレンダー / 一斉配信。認証は2系統:
-
-- **ID/パスワード**（推奨・LINE不要）: `/admin/login` でログイン。PC のブラウザからも使える。
-  セットアップは GAS の `setAdminLogin()`（[`apps-script/README.md`](apps-script/README.md) の「管理ログイン」を参照）。
-- **LINEログイン**: 管理者の LINE userId を `ADMIN_USER_IDS` か `Admins` シートに登録すると、
-  LINE で `/admin` を開いて入れる。
-
-セッショントークンは `localStorage`（`hc_admin_session`）に保持し、各 admin API に付与する。
-最終認可は GAS 側 `requireAdmin_` が行う。DEMO モードでは常にログイン済みとして表示する。
+> 📌 **このリポジトリの `/admin` は 2026-10 に廃止しました。** 管理画面は
+> **`himawari-site`（https://himawari-co.pages.dev/admin）** に一本化されています。
+> 古いブックマークで `/admin/*` を開くと、`next.config.mjs` のリダイレクトで himawari-site の管理画面へ移動します。
 
 ## デプロイ (仕様書 §11.6)
 
@@ -133,7 +124,7 @@ Cloudflare Pages + `@cloudflare/next-on-pages` を使う。デプロイ方法は
 - **Secrets**: `CLOUDFLARE_API_TOKEN`（Pages 編集権限）/ `CLOUDFLARE_ACCOUNT_ID`
 - **Variables**（ビルド時にバンドルへ埋め込み・任意）:
   - `NEXT_PUBLIC_DEMO_MODE` … 未設定なら `1`（DEMO）。本番LINE運用時は `0`
-  - `NEXT_PUBLIC_LIFF_ID` / `NEXT_PUBLIC_GAS_ENDPOINT` / `NEXT_PUBLIC_ADMIN_LIFF_ID`
+  - `NEXT_PUBLIC_LIFF_ID` / `NEXT_PUBLIC_GAS_ENDPOINT`
 
 > `NEXT_PUBLIC_*` はビルド時にクライアントへ埋め込まれるため、Cloudflare ダッシュボードの
 > 環境変数ではなく **GitHub 側の Variables** が使われる（Direct Upload のため）。

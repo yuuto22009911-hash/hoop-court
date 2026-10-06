@@ -70,7 +70,8 @@ Cloudflare Pages + `@cloudflare/next-on-pages`（Edge Runtime）。
 - **通信は `/exec` への POST 1本**。`Content-Type: text/plain;charset=UTF-8` を守る
   （`application/json` は CORS プリフライトで失敗する）
 - **`DEMO_MODE=1`** で LINE も GAS も無しに UI を通せる（`src/lib/gas.ts` の DEMO 分岐）
-- `/admin` は **`himawari-site` に統一済みで、こちらは廃止予定**。ただし現存し同じ GAS を見る
+- `/admin` は **2026-10 に廃止済み**（`/admin/*` は himawari-site の管理画面へリダイレクト）。管理系の UI をこのリポジトリに作らない
+- 🆕 2026-10-06 からシステム再設計（v2）が進行中。`himawari-site` の `docs/redesign/` を参照。切替日までは上の3点が有効
 
 ## ドキュメント
 
