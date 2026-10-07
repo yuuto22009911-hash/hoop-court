@@ -3,6 +3,15 @@
 向日葵株式会社 バスケ体育館（ハーフコート1面）の LIFF 予約アプリ。
 **`apps-script/Code.gs`（GAS バックエンド）の正本もこのリポジトリにあります。**
 
+## 個人共通ルール（Mac の `~/.claude/CLAUDE.md` の写し）
+
+クラウドセッションは Mac の `~/.claude/CLAUDE.md` を読めないため、写しをリポジトリに置いて読み込ませている。
+Mac 側を変えたらこのファイルも差し替えること（`himawari-site` の `.claude/global-CLAUDE.md` と同じ内容に保つ）。
+本ファイル（プロジェクトの CLAUDE.md）と食い違う点はプロジェクト側を優先する。
+クラウドには `~/.claude/templates/`・`~/Obsidian`・Claude in Chrome・`auto-approve.sh` 等が無いので、その部分は使える範囲で従う。
+
+@.claude/global-CLAUDE.md
+
 ## 着手前に読む
 
 **このプロジェクトは複数の Claude Code セッションが並行して触ります。**
