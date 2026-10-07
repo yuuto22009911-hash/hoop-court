@@ -40,7 +40,7 @@
 | `AUTH` / `FORBIDDEN` | 認証・権限 |
 | `VALIDATION` | `group_name` が空、`payment_method` が不正、日時の形式不正 |
 | `CONFIG` | **末尾5列が未追加**（`migrateSheets()` の実行漏れ） |
-| `P0001` 〜 `P0011` | 予約ルール違反。[`reservations.create`](./reservations.create.md) と同じ |
+| `P0001` 〜 `P0012` | 予約ルール違反。[`reservations.create`](./reservations.create.md) と同じ（ただし `P0003` 休業枠は返さない） |
 
 ## 書き込まれる値
 
@@ -58,6 +58,7 @@
 | --- | --- | --- |
 | 会員登録 | 必須 | **不要** |
 | 過去時刻 | 拒否（`P0005`） | **許可**（受付入力は事後になりがちなため） |
+| 休業・ブロック枠 | 拒否（`P0003`） | **許可**（休業日の貸切など、意図して入れることがあるため） |
 | LINE 通知 | 送る | **送らない** |
 | `source` | 空 | `manual` |
 
