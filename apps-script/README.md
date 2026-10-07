@@ -105,6 +105,7 @@
 | `SPREADSHEET_ID` | 任意 | スタンドアロン時の対象スプレッドシートID |
 | `ADMIN_LOGIN_USER` | 一時 | 管理ログインのユーザーID（`setAdminLogin()` 実行用。下記参照） |
 | `ADMIN_LOGIN_PASSWORD` | 一時 | 管理ログインのパスワード（実行後に自動削除される） |
+| `MAINTENANCE_MODE` | 切替時のみ | `1` で書き込み系 action をすべて `MAINTENANCE` で拒否（読み取り系は動く）。v2 への切替作業中だけ入れる。未設定・`1` 以外なら通常どおり |
 
 > `LINE_LOGIN_CHANNEL_ID` は、LIFF が属する **LINEログインチャネル**の Channel ID です
 > （LIFF ID とは別物）。IDトークンの `aud` 検証に使います。

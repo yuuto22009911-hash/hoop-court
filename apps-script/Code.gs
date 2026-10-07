@@ -140,7 +140,24 @@ function fail_(message, code) {
 }
 
 // ====================== ルーティング ======================
+// v2 への切替中に v1 へ予約が書かれると移行データから漏れるため、書き込み系だけを止める。
+// 読み取り系は照合とシートの書き出しに要るので止めない。
+var WRITE_ACTIONS_ = [
+  "auth.register",
+  "reservations.create", "reservations.cancel",
+  "admin.reservations.create", "admin.reservations.cancel",
+  "admin.slots.set", "admin.slots.bulkUpdate",
+  "admin.reservations.markPaid", "admin.reservations.markRefunded", "admin.reservations.markNoShow",
+  "admin.checkin", "admin.broadcast"
+];
+function isMaintenance_() {
+  return String(props_("MAINTENANCE_MODE") || "").trim() === "1";
+}
+
 function handle_(action, p, idToken) {
+  if (WRITE_ACTIONS_.indexOf(action) >= 0 && isMaintenance_()) {
+    throw fail_("ただいまシステムの切替作業中のため、予約の受付を停止しています。しばらくしてからお試しください。", "MAINTENANCE");
+  }
   switch (action) {
     case "courts.list": return { courts: listCourts_() };
     case "availability.range": return availabilityRange_(p);

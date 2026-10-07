@@ -122,6 +122,7 @@ idToken が 64桁hex か？
 | `VALIDATION` | 入力不正 | 必須項目が空、値が想定外 |
 | `CONFIG` | 設定不足 | シート・列・スクリプトプロパティが無い |
 | `BAD_REQUEST` | 未知の action | **デプロイが古い可能性** |
+| `MAINTENANCE` | 切替作業中 | スクリプトプロパティ `MAINTENANCE_MODE=1`。書き込み系 action（予約・キャンセル・登録・受付・入金・返金・No-Show・枠の開閉・一斉配信）だけ拒否 |
 | `UNREGISTERED` | 会員未登録 | プロフィール登録前に予約しようとした |
 | `ALREADY_CHECKED_IN` | 受付済み | 二重チェックイン |
 | `BROADCAST` | 配信失敗 | Messaging API のエラー |

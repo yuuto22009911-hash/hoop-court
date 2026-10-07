@@ -107,6 +107,7 @@ Cloudflare Pages の環境変数を更新し、**再デプロイ**します。
 | --- | --- |
 | `unsupported action: xxx` | **GAS が古い。** 再デプロイ漏れ（§1） |
 | 全 action が `CONFIG` | スクリプト プロパティ、またはシートが無い |
+| 予約・受付などが `MAINTENANCE` | スクリプト プロパティ `MAINTENANCE_MODE` が `1` のまま。切替作業中でなければ削除する |
 | 新しい列だけ `CONFIG` | `migrateSheets` の実行漏れ（§2） |
 | 管理画面が `AUTH` | セッション切れ（6時間）。再ログイン |
 | LIFF が `AUTH` | IDトークン失効。アプリを開き直す |
