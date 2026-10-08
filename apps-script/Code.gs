@@ -560,6 +560,8 @@ function authRegister_(idToken, p) {
  *   allowPast:      true なら過去時刻の予約を許可（カウンター受付は事後入力になりがち）
  *   phone:          電話番号（任意・phone 列へ）
  *   payment_method: "CASH" | "PAYPAY" | "BANK_TRANSFER"（指定時はその場で PAID にする）
+ *   rejectClosed:   true なら休業・ブロック枠（Slots）に重なる予約を拒否。会員のみ。
+ *                   管理者は休業日の貸切など意図して入れることがあるので通す
  * }
  * 戻り値: { reservation_id, display_number, amount, mode, starts_at, ends_at, headcount, payment_status }
  */
@@ -580,6 +582,11 @@ function createReservationCore_(opts) {
   var end = endDate;
 
   if (durationMin <= 0) throw fail_("終了時刻は開始時刻より後にしてください。", "P0002");
+  // 料金と枠判定は文字列の時:分で計算するので、実際の時間差と食い違う入力（日付またぎ・
+  // 別タイムゾーン表記）を通すと 1 時間分の料金で何日分でも占有できてしまう。
+  if (end.getTime() - start.getTime() !== durationMin * 60000) {
+    throw fail_("開始と終了は同じ日の時刻で指定してください。", "P0012");
+  }
   if (startMin < OPEN_HOUR * 60 || endMin > CLOSE_HOUR * 60) {
     throw fail_("予約は " + OPEN_HOUR + ":00〜" + CLOSE_HOUR + ":00 の範囲で指定してください。", "P0004");
   }
@@ -603,6 +610,13 @@ function createReservationCore_(opts) {
     var blocking = readTable_("Reservations").filter(function (r) {
       return String(r.court_id) === court_id && isBlockingStatus_(r.status);
     });
+    if (opts.rejectClosed) {
+      var closed = readTable_("Slots").some(function (s) {
+        return String(s.court_id) === court_id && String(s.status) !== "OPEN" &&
+          new Date(s.starts_at) < end && new Date(s.ends_at) > start;
+      });
+      if (closed) throw fail_("選択した時間帯は休業のため、ご予約いただけません。", "P0003");
+    }
     var amount;
     if (mode === "FREE") {
       if (durationMin % 30 !== 0) throw fail_("フリーは30分単位でご指定ください。", "P0006");
@@ -663,7 +677,8 @@ function reservationsCreate_(idToken, p) {
   if (!user) throw fail_("プロフィール登録が必要です。", "UNREGISTERED");
 
   var created = createReservationCore_({
-    p: p, user_id: user.id, source: "", allowPast: false, phone: "", payment_method: ""
+    p: p, user_id: user.id, source: "", allowPast: false, phone: "", payment_method: "",
+    rejectClosed: true
   });
 
   // 予約確定通知（ロック解放後に送る。通知失敗で予約を失敗させない）
@@ -849,6 +864,8 @@ function adminCheckin_(idToken, p) {
   var t = findReservationRow_(p.reservation_id);
   if (!t) throw fail_("not found", "NOT_FOUND");
   if (String(t.status) === "COMPLETED" || t.checked_in_at) throw fail_("already checked in", "ALREADY_CHECKED_IN");
+  // 受付で CONFIRMED を経ずに COMPLETED（占有扱い）へ戻すと、キャンセル後に入った別の予約と二重占有になる
+  if (String(t.status) === "CANCELED") throw fail_("キャンセル済みの予約は受付できません。", "CANCELED");
   var now = nowIso_();
   updateRow_("Reservations", t._row, { status: "COMPLETED", checked_in_at: now, updated_at: now });
   return { checked_in_at: now, display_number: String(t.display_number), group_name: String(t.group_name || "") };

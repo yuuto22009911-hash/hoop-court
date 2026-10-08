@@ -40,6 +40,8 @@ LINE IDトークン（必須）。**かつ会員登録済みであること。**
 | `UNREGISTERED` | プロフィール未登録 |
 | `VALIDATION` | 日時が未指定・形式不正 |
 | `P0002` | 終了 ≦ 開始 |
+| `P0012` | 開始と終了が別の日（または時刻の表記が食い違う） |
+| `P0003` | 休業・ブロック枠（`Slots` の `CLOSED` / `BLOCKED`）に重なる |
 | `P0004` | 営業時間外 |
 | `P0005` | **開始時刻が現在より過去** |
 | `P0010` | コートが見つからない |
@@ -70,4 +72,4 @@ LINE IDトークン（必須）。**かつ会員登録済みであること。**
 
 検証・金額・排他は `createReservationCore_()` に集約しており、
 [`admin.reservations.create`](./admin.reservations.create.md) と**同じコードを通ります**。
-差分は `user_id` / `source` / `allowPast` / 通知の有無 / `phone`・`payment_method` の記録だけです。
+差分は `user_id` / `source` / `allowPast` / `rejectClosed`（休業枠の拒否）/ 通知の有無 / `phone`・`payment_method` の記録だけです。
