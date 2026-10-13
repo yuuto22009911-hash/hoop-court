@@ -19,7 +19,7 @@ const zenMaru = Zen_Maru_Gothic({
 
 export const metadata: Metadata = {
   title: "向日葵株式会社 体育館予約",
-  description: "向日葵株式会社 バスケ体育館（ハーフコート1面）のコート予約・フリーゴール予約",
+  description: "向日葵株式会社 体育館（ハーフコート1面）の予約（貸切・フリー）",
   robots: { index: false, follow: false }
 };
 

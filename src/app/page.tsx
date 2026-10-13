@@ -96,7 +96,7 @@ function Calendar() {
       {/* 施設・料金の案内 */}
       <div className="flex items-center justify-between mb-3">
         <div className="text-sm font-semibold">
-          {courtsLoaded ? (courts[0]?.name ?? "バスケコート") : <span className="skeleton w-40" />}
+          体育館（ハーフコート1面）
         </div>
         <Link href="/info" className="text-sm underline text-accent">
           料金・ご利用案内
