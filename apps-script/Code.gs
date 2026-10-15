@@ -576,21 +576,32 @@ function createReservationCore_(opts) {
   if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
     throw fail_("日時の形式が不正です。", "VALIDATION");
   }
-  var ymd = String(p.starts_at).slice(0, 10);
-  var startMin = hhmmToMin_(p.starts_at);
-  var endMin = hhmmToMin_(p.ends_at);
-  var durationMin = endMin - startMin;
   var start = startDate;
   var end = endDate;
+  // 日付・時:分は送られた文字列ではなく JST に直した値で見る。文字列のままだと UTC 表記などで
+  // 「12:00Z（= JST 21:00）」が 12:00 として営業時間内に見え、営業時間外の予約が通ってしまう。
+  // +09:00 表記で送る既存の呼び出し（LIFF・管理画面）は変換しても同じ値になる。
+  var startJst = jstIso_(start);
+  var endJst = jstIso_(end);
+  var ymd = startJst.slice(0, 10);
+  var startMin = hhmmToMin_(startJst);
+  var endMin = hhmmToMin_(endJst);
+  var durationMin = endMin - startMin;
 
   if (durationMin <= 0) throw fail_("終了時刻は開始時刻より後にしてください。", "P0002");
-  // 料金と枠判定は文字列の時:分で計算するので、実際の時間差と食い違う入力（日付またぎ・
-  // 別タイムゾーン表記）を通すと 1 時間分の料金で何日分でも占有できてしまう。
+  // 料金と枠判定は JST の時:分で計算するので、実際の時間差と食い違う入力（日付またぎ）を通すと
+  // 1 時間分の料金で何日分でも占有できてしまう。
   if (end.getTime() - start.getTime() !== durationMin * 60000) {
     throw fail_("開始と終了は同じ日の時刻で指定してください。", "P0012");
   }
   if (startMin < OPEN_HOUR * 60 || endMin > CLOSE_HOUR * 60) {
     throw fail_("予約は " + OPEN_HOUR + ":00〜" + CLOSE_HOUR + ":00 の範囲で指定してください。", "P0004");
+  }
+  // 枠は :00 / :30 始まりの30分単位。秒・ミリ秒の端数や :15 始まりは枠表と食い違うので拒否する
+  // （JST は UTC との差が整数時間なので、エポックミリ秒が30分で割り切れるかで判定できる）。
+  var SLOT_MS = 30 * 60000;
+  if (start.getTime() % SLOT_MS !== 0 || end.getTime() % SLOT_MS !== 0) {
+    throw fail_("時刻は30分単位（:00 / :30）でご指定ください。", "P0014");
   }
   // 過去の時間帯を拒否（availabilityRange_ と同一基準）。会員の当日の未来枠は下の rejectSameDay で P0013。
   if (!opts.allowPast && start.getTime() < Date.now()) {
