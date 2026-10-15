@@ -103,13 +103,6 @@ export async function listMyReservations(
   return post("reservations.listMine", undefined, idToken);
 }
 
-export async function cancelReservation(
-  idToken: string,
-  reservation_id: string
-): Promise<{ charge_rate: number; charge_amount: number }> {
-  return post("reservations.cancel", { reservation_id }, idToken);
-}
-
 // ============ DEMO モード ============
 // 仕様書 §10.5: キー無しで UI 確認ができるよう localStorage に擬似データを持つ
 
@@ -320,20 +313,6 @@ function demoExec(action: string, p: Record<string, unknown>) {
 
     case "reservations.listMine":
       return { reservations: stored };
-
-    case "reservations.cancel": {
-      const { reservation_id } = p as { reservation_id: string };
-      const idx = stored.findIndex((r) => r.id === reservation_id);
-      if (idx < 0) throw new GasError("見つかりません", "NOT_FOUND");
-      const target = stored[idx];
-      // キャンセル規定: 当面いつでも無料（2026-06 暫定方針・himawari-app と一致）
-      const rate = 0;
-      target.status = "CANCELED";
-      target.canceled_at = new Date().toISOString();
-      target.updated_at = target.canceled_at;
-      localStorage.setItem(DEMO_KEY_RES, JSON.stringify(stored));
-      return { charge_rate: rate, charge_amount: Math.floor(target.total_amount * rate) };
-    }
 
     default:
       throw new GasError("DEMO: unsupported action " + action, "BAD_REQUEST");

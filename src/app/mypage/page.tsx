@@ -1,7 +1,8 @@
 /**
  * S-06 マイページ
  * 仕様書 §3.1 / §3.4 S-06。
- * 自分の予約一覧を表示し、QR 表示・キャンセルが可能。
+ * 自分の予約一覧と入場 QR を表示する。
+ * キャンセルはお客様からは受け付けない（2026-10-15 オーナー決定）。電話連絡 → スタッフが管理画面で取り消す。
  */
 
 "use client";
@@ -9,7 +10,8 @@
 import { useEffect, useRef, useState } from "react";
 import LiffGate from "@/components/LiffGate";
 import TabBar from "@/components/TabBar";
-import { cancelReservation, listMyReservations } from "@/lib/gas";
+import { listMyReservations } from "@/lib/gas";
+import { PHONE_NUMBER } from "@/lib/contact";
 import { getIdToken } from "@/lib/auth";
 import { formatRange, formatYen } from "@/lib/format";
 import { renderReservationQr } from "@/lib/qr";
@@ -32,7 +34,6 @@ function MyPageInner() {
   // 読込失敗を「予約0件」と区別する。0件と表示すると、予約が消えたと思って
   // 予約し直してしまう（二重予約の誘因になる）。
   const [loadError, setLoadError] = useState(false);
-  const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [qrId, setQrId] = useState<string | null>(null);
   const qrRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -57,29 +58,6 @@ function MyPageInner() {
     }
   }
 
-  async function handleCancel(id: string) {
-    if (cancelingId) return;
-    if (!confirm("予約をキャンセルしてよろしいですか？")) return;
-    setCancelingId(id);
-    try {
-      const r = await cancelReservation(getIdToken(), id);
-      alert(
-        r.charge_amount > 0
-          ? `キャンセルを受け付けました。\nキャンセル料率: ${Math.round(r.charge_rate * 100)}%\nキャンセル料: ${formatYen(r.charge_amount)}`
-          : "キャンセルを受け付けました。キャンセル料はかかりません。"
-      );
-      await load();
-    } catch (err) {
-      console.error(err);
-      alert(
-        "キャンセルを完了できませんでした。通信状況をご確認のうえ、予約一覧を更新してキャンセルされているかご確認ください。"
-      );
-      await load();
-    } finally {
-      setCancelingId(null);
-    }
-  }
-
   if (loadError) {
     return (
       <div className="text-center py-6">
@@ -87,7 +65,7 @@ function MyPageInner() {
         <p className="text-sm text-muted mb-4">
           通信状況をご確認のうえ、もう一度お試しください。
           <br />
-          解決しない場合はお電話（090-7889-2729）でお問い合わせください。
+          解決しない場合はお電話（{PHONE_NUMBER}）でお問い合わせください。
         </p>
         <button type="button" className="btn btn-primary" onClick={() => load()}>
           再読み込み
@@ -121,23 +99,22 @@ function MyPageInner() {
             {r.payment_status === "PAID" ? "支払い済み" : "未払い・当日現地で現金"}）
           </div>
           {r.status === "CONFIRMED" && new Date(r.ends_at).getTime() > Date.now() && (
-            <div className="flex gap-2 mt-2">
+            <div className="mt-2">
               <button
                 type="button"
-                className="btn btn-primary flex-1"
+                className="btn btn-primary w-full"
                 onClick={() => setQrId(r.id)}
               >
                 入場 QR
               </button>
               {new Date(r.starts_at).getTime() > Date.now() && (
-                <button
-                  type="button"
-                  className="btn btn-ghost flex-1"
-                  disabled={cancelingId !== null}
-                  onClick={() => handleCancel(r.id)}
-                >
-                  {cancelingId === r.id ? "キャンセル中…" : "キャンセル"}
-                </button>
+                <p className="text-xs text-muted mt-2">
+                  来られなくなった場合はお電話ください（代表{" "}
+                  <a href={`tel:${PHONE_NUMBER}`} className="underline">
+                    {PHONE_NUMBER}
+                  </a>
+                  ）。LINE からのキャンセルは受け付けておりません。
+                </p>
               )}
             </div>
           )}
