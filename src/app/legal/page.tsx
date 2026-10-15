@@ -3,6 +3,8 @@
  * 事業者: 向日葵株式会社
  */
 
+import { PHONE_NUMBER } from "@/lib/contact";
+
 export default function LegalPage() {
   return (
     <>
@@ -12,7 +14,7 @@ export default function LegalPage() {
           <Row label="販売事業者" value="向日葵株式会社（HIMAWARI）" />
           <Row label="代表者" value="代表取締役社長 川村 有希" />
           <Row label="所在地" value="〒574-0041 大阪府大東市浜町2-4" />
-          <Row label="電話番号" value="090-7889-2729" />
+          <Row label="電話番号" value={PHONE_NUMBER} />
           <Row label="メールアドレス" value="himawari20251113@gmail.com" />
           <Row label="設立" value="2025年11月13日" />
           <Row label="販売価格" value="各予約画面に表示（消費税込み）" />
@@ -31,7 +33,7 @@ export default function LegalPage() {
           />
           <Row
             label="返品・キャンセル"
-            value="当面、キャンセル料は無料です（いつでもキャンセル可・暫定方針）。"
+            value={`LINE からのキャンセルは受け付けておりません。来られなくなった場合はお電話（${PHONE_NUMBER}）でご連絡ください。`}
           />
         </dl>
 

@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { createReservation } from "@/lib/gas";
 import PaymentNotice from "@/components/PaymentNotice";
 import { getIdToken } from "@/lib/auth";
+import { PHONE_NUMBER } from "@/lib/contact";
 import { formatRange, formatYen } from "@/lib/format";
 import { charterPrice, freePrice } from "@/lib/pricing";
 import type { BookingMode } from "@/lib/types";
@@ -142,6 +143,7 @@ export default function ConfirmPage() {
             <li>ご予約時間を過ぎると、30分ごとの追加料金が発生します。</li>
             <li>コートはご予約を最優先でご案内します。</li>
             <li>当日のご予約も承ります（開始時刻を過ぎた枠は不可）。ご予約内容の変更はカウンターのみ（要相談）です。</li>
+            <li>LINE からのキャンセルは受け付けておりません。来られなくなった場合はお電話（{PHONE_NUMBER}）でご連絡ください。</li>
           </ul>
         </div>
 
@@ -153,7 +155,7 @@ export default function ConfirmPage() {
             className="mt-1"
           />
           <span className="text-sm">
-            キャンセル規定（当面はいつでも無料です）と利用規約に同意します
+            上記のご利用にあたっての注意事項と利用規約に同意します
           </span>
         </label>
 

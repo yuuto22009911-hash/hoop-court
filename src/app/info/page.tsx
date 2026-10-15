@@ -4,6 +4,7 @@
  */
 
 import Link from "next/link";
+import { PHONE_NUMBER } from "@/lib/contact";
 import { formatYen } from "@/lib/format";
 import {
   CHARTER_HOLIDAY,
@@ -79,7 +80,7 @@ export default function InfoPage() {
             <li>お支払いは当日現地で現金にてお願いします（PayPay は現在準備中です）。</li>
             <li>ご予約はアプリ（LINE）から24時間可能。コートはご予約を最優先でご案内します。</li>
             <li>当日のご予約も承ります（開始時刻を過ぎた枠は不可）。ご予約内容の変更はカウンターのみ（要相談）です。</li>
-            <li>キャンセルは当面無料です（いつでもキャンセル可・暫定）。</li>
+            <li>LINE からのキャンセルは受け付けておりません。来られなくなった場合はお電話（{PHONE_NUMBER}）でご連絡ください。</li>
           </ul>
         </Section>
 
@@ -101,7 +102,7 @@ export default function InfoPage() {
 
         <Section title="お問い合わせ">
           <p className="text-sm">向日葵株式会社</p>
-          <p className="text-sm">電話: 090-7889-2729</p>
+          <p className="text-sm">電話: {PHONE_NUMBER}</p>
           <p className="text-sm">メール: himawari20251113@gmail.com</p>
           <p className="text-sm">所在地: 大阪府大東市浜町</p>
           <p className="text-sm mt-2">
