@@ -22,6 +22,7 @@ import {
   freePrice,
   isHolidayRate
 } from "./pricing";
+import { jstTodayYmd, jstYmdOf } from "./jst";
 
 const GAS_ENDPOINT = process.env.NEXT_PUBLIC_GAS_ENDPOINT ?? "";
 const DEMO = process.env.NEXT_PUBLIC_DEMO_MODE === "1";
@@ -216,9 +217,12 @@ function demoExec(action: string, p: Record<string, unknown>) {
       if (startMinOfDay < OPEN_HOUR * 60 || endMinOfDay > CLOSE_HOUR * 60) {
         throw new GasError(`予約は ${OPEN_HOUR}:00〜${CLOSE_HOUR}:00 の範囲で指定してください。`, "P0004");
       }
-      // 当日でも開始時刻前なら予約できる。過去の時間帯のみ拒否（GAS 側と同一基準）
+      // 過去の時間帯は P0005、当日の枠は P0013（LIFF からは翌日以降のみ。GAS 側と同一基準）
       if (start.getTime() < Date.now()) {
         throw new GasError("過去の時間帯はご予約いただけません。", "P0005");
+      }
+      if (jstYmdOf(start.getTime()) <= jstTodayYmd()) {
+        throw new GasError("当日のご予約はカウンターで承ります。", "P0013");
       }
 
       let amount: number;

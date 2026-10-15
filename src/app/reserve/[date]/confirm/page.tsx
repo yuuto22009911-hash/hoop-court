@@ -9,9 +9,11 @@ import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createReservation } from "@/lib/gas";
 import PaymentNotice from "@/components/PaymentNotice";
+import SameDayNotice from "@/components/SameDayNotice";
 import { getIdToken } from "@/lib/auth";
 import { PHONE_NUMBER } from "@/lib/contact";
 import { formatRange, formatYen } from "@/lib/format";
+import { jstTodayYmd, jstYmdOf } from "@/lib/jst";
 import { charterPrice, freePrice } from "@/lib/pricing";
 import type { BookingMode } from "@/lib/types";
 
@@ -55,6 +57,10 @@ export default function ConfirmPage() {
       setSubmitting(false);
     }
   }
+
+  // 確認画面の URL を直接開いた場合も、当日以前の枠は確定させない（GAS も P0013 で拒否する）
+  const startMs = new Date(payload.starts_at).getTime();
+  const isNotBookable = !isNaN(startMs) && jstYmdOf(startMs) <= jstTodayYmd();
 
   const modeLabel = mode === "FREE" ? "バスケフリーゴール" : "貸切（コート）";
 
@@ -111,6 +117,7 @@ export default function ConfirmPage() {
       {/* 支払い方法の話が出る画面なので、ここで PayPay 未対応を一度だけ知らせる */}
       <PaymentNotice />
       <main className="app-main">
+        {isNotBookable && <SameDayNotice className="mb-4" />}
         <dl className="text-sm mb-4">
           <Row label="種別" value={modeLabel} />
           <Row label="日時" value={formatRange(payload.starts_at, payload.ends_at)} />
@@ -142,7 +149,8 @@ export default function ConfirmPage() {
           <ul className="text-xs text-muted list-disc pl-4 space-y-0.5">
             <li>ご予約時間を過ぎると、30分ごとの追加料金が発生します。</li>
             <li>コートはご予約を最優先でご案内します。</li>
-            <li>当日のご予約も承ります（開始時刻を過ぎた枠は不可）。ご予約内容の変更はカウンターのみ（要相談）です。</li>
+            <li>LINE からのご予約は翌日以降の枠のみです。当日のご予約はカウンター（お電話 {PHONE_NUMBER}）で承ります。</li>
+            <li>ご予約内容の変更はカウンターのみ（要相談）です。</li>
             <li>LINE からのキャンセルは受け付けておりません。来られなくなった場合はお電話（{PHONE_NUMBER}）でご連絡ください。</li>
           </ul>
         </div>
@@ -168,7 +176,7 @@ export default function ConfirmPage() {
         <button
           type="button"
           className="btn btn-primary w-full"
-          disabled={!agreed || submitting}
+          disabled={!agreed || submitting || isNotBookable}
           onClick={handleConfirm}
         >
           {submitting ? "確定中..." : "予約を確定する"}

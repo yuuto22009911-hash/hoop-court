@@ -44,6 +44,7 @@ LINE IDトークン（必須）。**かつ会員登録済みであること。**
 | `P0003` | 休業・ブロック枠（`Slots` の `CLOSED` / `BLOCKED`）に重なる |
 | `P0004` | 営業時間外 |
 | `P0005` | **開始時刻が現在より過去** |
+| `P0013` | **開始日が JST の今日以前**（当日のご予約はカウンターで承ります）。`P0005` に当たらない当日の枠が対象。2026-10-15〜・**本番未反映** |
 | `P0010` | コートが見つからない |
 | `P0001` | 時間帯が重複 |
 | `P0006` / `P0007` / `P0008` | フリーの単位・人数・残人数 |
@@ -72,4 +73,4 @@ LINE IDトークン（必須）。**かつ会員登録済みであること。**
 
 検証・金額・排他は `createReservationCore_()` に集約しており、
 [`admin.reservations.create`](./admin.reservations.create.md) と**同じコードを通ります**。
-差分は `user_id` / `source` / `allowPast` / `rejectClosed`（休業枠の拒否）/ 通知の有無 / `phone`・`payment_method` の記録だけです。
+差分は `user_id` / `source` / `allowPast` / `rejectClosed`（休業枠の拒否）/ `rejectSameDay`（当日の拒否）/ 通知の有無 / `phone`・`payment_method` の記録だけです。

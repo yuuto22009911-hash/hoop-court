@@ -3,7 +3,7 @@
  *   - 予約種別: 貸切（コート）/ バスケフリーゴール
  *   - 貸切: 初回1時間〜・以降30分単位で延長（土日祝は1時間単位）
  *   - フリー: 30分単位・人数あたり（最大9名・バスケ限定）
- *   - ハーフコート1面前提。当日予約も可（開始時刻を過ぎた枠は GAS 側で空きから除外される）。
+ *   - ハーフコート1面前提。LIFF からは翌日以降のみ（当日はカウンターで相談。GAS も P0013 で拒否する）。
  *   - 金額は向日葵株式会社 公式料金に準拠（lib/pricing）
  */
 
@@ -13,6 +13,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { availabilityRange, listCourts } from "@/lib/gas";
 import { formatYen } from "@/lib/format";
+import { jstTodayYmd } from "@/lib/jst";
+import SameDayNotice from "@/components/SameDayNotice";
 import {
   CHARTER_EVENING_FROM,
   CHARTER_HOLIDAY,
@@ -50,10 +52,6 @@ function formatDuration(min: number): string {
   if (h) return `${h}時間`;
   return `${m}分`;
 }
-function todayYmd(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${PAD(d.getMonth() + 1)}-${PAD(d.getDate())}`;
-}
 
 export default function ReserveDetailPage() {
   const params = useParams<{ date: string }>();
@@ -77,9 +75,11 @@ export default function ReserveDetailPage() {
   const [headcount, setHeadcount] = useState<number>(2);
   const [note, setNote] = useState("");
 
-  // 当日は予約できる。過ぎた時間帯の枠は availability.range が is_available:false で返すため、
-  // 時刻の判定はフロントに持たせない（GAS が唯一の可用性ソース）。
-  const isPastDate = date < todayYmd();
+  // 当日は LINE では受け付けない（カウンターで相談）。/reserve/<今日> を直接開いた場合もここで止める。
+  // 端末のタイムゾーンに依存しないよう JST の日付文字列で比べる。
+  const today = jstTodayYmd();
+  const isPastDate = date < today;
+  const isSameDay = date === today;
 
   useEffect(() => {
     listCourts().then((r) => {
@@ -88,7 +88,8 @@ export default function ReserveDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (!courtId) return;
+    // 当日・過去日は時刻表を出さないので空き状況も取りに行かない
+    if (!courtId || isSameDay || isPastDate) return;
     const from = `${date}T00:00:00+09:00`;
     const to = `${date}T24:00:00+09:00`;
     setSlotsLoading(true);
@@ -96,7 +97,7 @@ export default function ReserveDetailPage() {
       .then((r) => setSlots(r.slots))
       .catch(console.error)
       .finally(() => setSlotsLoading(false));
-  }, [courtId, date]);
+  }, [courtId, date, isSameDay, isPastDate]);
 
   // 30分スロットの空き（index → boolean）
   const slotAvail = useMemo(() => {
@@ -157,7 +158,7 @@ export default function ReserveDetailPage() {
   }, [mode, startSlot, endSlot, headcount, date]);
 
   const hasSelection = startSlot !== null && endSlot !== null;
-  const canProceed = hasSelection && groupName.trim().length > 0 && !isPastDate;
+  const canProceed = hasSelection && groupName.trim().length > 0 && !isPastDate && !isSameDay;
 
   function handleProceed() {
     if (!canProceed || !courtId || startSlot === null || endSlot === null) return;
@@ -179,6 +180,25 @@ export default function ReserveDetailPage() {
 
   const dow = WDAY[new Date(`${date}T00:00:00+09:00`).getDay()];
 
+  if (isSameDay) {
+    return (
+      <>
+        <header className="app-header">
+          <button type="button" className="back" onClick={() => router.back()} aria-label="戻る">
+            ←
+          </button>
+          {date}（{dow}）
+        </header>
+        <main className="app-main">
+          <SameDayNotice className="mb-3" />
+          <button type="button" className="btn btn-ghost w-full" onClick={() => router.push("/")}>
+            カレンダーに戻る
+          </button>
+        </main>
+      </>
+    );
+  }
+
   if (isPastDate) {
     return (
       <>
@@ -192,7 +212,7 @@ export default function ReserveDetailPage() {
           <div className="notice">
             <p className="font-semibold mb-1">過去の日付はご予約いただけません</p>
             <p className="text-sm">
-              本日以降の枠をご予約いただけます（開始時刻を過ぎた枠は選べません）。
+              LINE からは翌日以降の枠をご予約いただけます。
             </p>
           </div>
           <button type="button" className="btn btn-ghost w-full" onClick={() => router.push("/")}>

@@ -20,7 +20,9 @@ Mac 側を変えたらこのファイルも差し替えること（`himawari-sit
 
 ### 現況（2026-08 時点・古い前提で作らない）
 
-- **当日予約は解禁済み。** 拒否するのは「開始時刻 < 現在時刻」だけ（`P0005`）
+- **LIFF（お客様）からは当日の予約を受け付けない**（2026-10-15 オーナー決定）。当日はカウンター（電話）で相談。
+  `reservations.create` は開始日が JST の今日以前なら `P0013`（**GAS 本番未反映**）。過去時刻は従来どおり `P0005`。
+  **管理画面の `admin.reservations.create` は当日・過去時刻とも登録できる（変更なし）**
 - **管理用の4 action が本番稼働中**: `admin.reservations.create` / `cancel` / `admin.slots.list` / `set`
 - **返金は `admin.reservations.markRefunded`**（Version 5 で有効・未反映）。キャンセルしただけでは売上から外れない
 - **占有判定は `CONFIRMED` + `COMPLETED`**（`isBlockingStatus_`）。`status === "CONFIRMED"` と直書きしない

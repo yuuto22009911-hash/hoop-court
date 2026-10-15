@@ -562,6 +562,8 @@ function authRegister_(idToken, p) {
  *   payment_method: "CASH" | "PAYPAY" | "BANK_TRANSFER"（指定時はその場で PAID にする）
  *   rejectClosed:   true なら休業・ブロック枠（Slots）に重なる予約を拒否。会員のみ。
  *                   管理者は休業日の貸切など意図して入れることがあるので通す
+ *   rejectSameDay:  true なら開始日が JST の今日以前の予約を拒否（P0013）。会員のみ。
+ *                   当日はカウンターで相談する運用（2026-10-15 オーナー決定）。管理者の当日登録は通す
  * }
  * 戻り値: { reservation_id, display_number, amount, mode, starts_at, ends_at, headcount, payment_status }
  */
@@ -590,9 +592,14 @@ function createReservationCore_(opts) {
   if (startMin < OPEN_HOUR * 60 || endMin > CLOSE_HOUR * 60) {
     throw fail_("予約は " + OPEN_HOUR + ":00〜" + CLOSE_HOUR + ":00 の範囲で指定してください。", "P0004");
   }
-  // 当日でも開始時刻前なら予約できる。過去の時間帯のみ拒否（availabilityRange_ と同一基準）。
+  // 過去の時間帯を拒否（availabilityRange_ と同一基準）。会員の当日の未来枠は下の rejectSameDay で P0013。
   if (!opts.allowPast && start.getTime() < Date.now()) {
     throw fail_("過去の時間帯はご予約いただけません。", "P0005");
+  }
+  // 当日分は LINE で受け付けずカウンターで相談してもらう。文字列ではなく実時刻を JST に直して
+  // 比べるので、別タイムゾーン表記で送られても当日判定をすり抜けない。
+  if (opts.rejectSameDay && jstYmd_(start) <= todayYmd_()) {
+    throw fail_("当日のご予約はカウンターで承ります。", "P0013");
   }
 
   var court_id = String(p.court_id || "");
@@ -678,7 +685,7 @@ function reservationsCreate_(idToken, p) {
 
   var created = createReservationCore_({
     p: p, user_id: user.id, source: "", allowPast: false, phone: "", payment_method: "",
-    rejectClosed: true
+    rejectClosed: true, rejectSameDay: true
   });
 
   // 予約確定通知（ロック解放後に送る。通知失敗で予約を失敗させない）
