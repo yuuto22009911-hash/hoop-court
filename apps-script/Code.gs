@@ -1171,7 +1171,7 @@ function setup() {
   var courts = readTable_("Courts");
   if (courts.length === 0) {
     appendRow_("Courts", {
-      id: "court-half", facility_id: "himawari", name: "バスケコート（ハーフ1面）",
+      id: "court-half", facility_id: "himawari", name: "体育館（ハーフコート1面）",
       court_type: "HALF", sides_max: 1, capacity: FREE_MAX_HEADCOUNT, is_active: true, created_at: nowIso_()
     });
   }

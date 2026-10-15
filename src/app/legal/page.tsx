@@ -27,7 +27,7 @@ export default function LegalPage() {
           <Row label="支払時期" value="ご利用当日、受付時" />
           <Row
             label="商品の引渡時期"
-            value="予約した時間帯にご指定のコートをご利用いただけます。"
+            value="予約した時間帯にご指定の体育館をご利用いただけます。"
           />
           <Row
             label="返品・キャンセル"

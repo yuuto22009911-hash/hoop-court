@@ -134,7 +134,7 @@ const DEMO_COURTS: Court[] = [
   {
     id: "demo-court",
     facility_id: "demo-facility",
-    name: "バスケコート（ハーフ1面）",
+    name: "体育館（ハーフコート1面）",
     court_type: "HALF",
     sides_max: 1,
     capacity: FREE_MAX_HEADCOUNT,

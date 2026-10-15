@@ -84,7 +84,7 @@ export default function InfoPage() {
         </Section>
 
         <Section title="2F ギャラリー・リラクゼーション">
-          <p className="text-sm mb-1">2F にコートを観覧できるギャラリーがあります。</p>
+          <p className="text-sm mb-1">2F に体育館を観覧できるギャラリーがあります。</p>
           <ul className="text-sm list-disc pl-5 space-y-1">
             <li>ハンドマッサージ {formatYen(1300)} / 15分</li>
             <li>フットマッサージ {formatYen(1300)} / 15分</li>
@@ -95,7 +95,7 @@ export default function InfoPage() {
             リラクゼーションのご利用は体育館受付にてお申し込みください（LINE からのご予約には対応しておりません）。マッサージチェアもご用意しています（料金は準備中）。
           </p>
           <p className="text-sm mt-2 font-semibold text-accent">
-            コート予約＋リラクゼーション同時予約で、次回コート 200円引き！
+            体育館予約＋リラクゼーション同時予約で、次回体育館 200円引き！
           </p>
         </Section>
 
