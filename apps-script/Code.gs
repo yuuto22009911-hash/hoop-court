@@ -562,6 +562,8 @@ function authRegister_(idToken, p) {
  *   payment_method: "CASH" | "PAYPAY" | "BANK_TRANSFER"（指定時はその場で PAID にする）
  *   rejectClosed:   true なら休業・ブロック枠（Slots）に重なる予約を拒否。会員のみ。
  *                   管理者は休業日の貸切など意図して入れることがあるので通す
+ *   rejectSameDay:  true なら開始日が JST の今日以前の予約を拒否（P0013）。会員のみ。
+ *                   当日はカウンターで相談する運用（2026-10-15 オーナー決定）。管理者の当日登録は通す
  * }
  * 戻り値: { reservation_id, display_number, amount, mode, starts_at, ends_at, headcount, payment_status }
  */
@@ -574,25 +576,41 @@ function createReservationCore_(opts) {
   if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
     throw fail_("日時の形式が不正です。", "VALIDATION");
   }
-  var ymd = String(p.starts_at).slice(0, 10);
-  var startMin = hhmmToMin_(p.starts_at);
-  var endMin = hhmmToMin_(p.ends_at);
-  var durationMin = endMin - startMin;
   var start = startDate;
   var end = endDate;
+  // 日付・時:分は送られた文字列ではなく JST に直した値で見る。文字列のままだと UTC 表記などで
+  // 「12:00Z（= JST 21:00）」が 12:00 として営業時間内に見え、営業時間外の予約が通ってしまう。
+  // +09:00 表記で送る既存の呼び出し（LIFF・管理画面）は変換しても同じ値になる。
+  var startJst = jstIso_(start);
+  var endJst = jstIso_(end);
+  var ymd = startJst.slice(0, 10);
+  var startMin = hhmmToMin_(startJst);
+  var endMin = hhmmToMin_(endJst);
+  var durationMin = endMin - startMin;
 
   if (durationMin <= 0) throw fail_("終了時刻は開始時刻より後にしてください。", "P0002");
-  // 料金と枠判定は文字列の時:分で計算するので、実際の時間差と食い違う入力（日付またぎ・
-  // 別タイムゾーン表記）を通すと 1 時間分の料金で何日分でも占有できてしまう。
+  // 料金と枠判定は JST の時:分で計算するので、実際の時間差と食い違う入力（日付またぎ）を通すと
+  // 1 時間分の料金で何日分でも占有できてしまう。
   if (end.getTime() - start.getTime() !== durationMin * 60000) {
     throw fail_("開始と終了は同じ日の時刻で指定してください。", "P0012");
   }
   if (startMin < OPEN_HOUR * 60 || endMin > CLOSE_HOUR * 60) {
     throw fail_("予約は " + OPEN_HOUR + ":00〜" + CLOSE_HOUR + ":00 の範囲で指定してください。", "P0004");
   }
-  // 当日でも開始時刻前なら予約できる。過去の時間帯のみ拒否（availabilityRange_ と同一基準）。
+  // 枠は :00 / :30 始まりの30分単位。秒・ミリ秒の端数や :15 始まりは枠表と食い違うので拒否する
+  // （JST は UTC との差が整数時間なので、エポックミリ秒が30分で割り切れるかで判定できる）。
+  var SLOT_MS = 30 * 60000;
+  if (start.getTime() % SLOT_MS !== 0 || end.getTime() % SLOT_MS !== 0) {
+    throw fail_("時刻は30分単位（:00 / :30）でご指定ください。", "P0014");
+  }
+  // 過去の時間帯を拒否（availabilityRange_ と同一基準）。会員の当日の未来枠は下の rejectSameDay で P0013。
   if (!opts.allowPast && start.getTime() < Date.now()) {
     throw fail_("過去の時間帯はご予約いただけません。", "P0005");
+  }
+  // 当日分は LINE で受け付けずカウンターで相談してもらう。文字列ではなく実時刻を JST に直して
+  // 比べるので、別タイムゾーン表記で送られても当日判定をすり抜けない。
+  if (opts.rejectSameDay && jstYmd_(start) <= todayYmd_()) {
+    throw fail_("当日のご予約はカウンターで承ります。", "P0013");
   }
 
   var court_id = String(p.court_id || "");
@@ -678,7 +696,7 @@ function reservationsCreate_(idToken, p) {
 
   var created = createReservationCore_({
     p: p, user_id: user.id, source: "", allowPast: false, phone: "", payment_method: "",
-    rejectClosed: true
+    rejectClosed: true, rejectSameDay: true
   });
 
   // 予約確定通知（ロック解放後に送る。通知失敗で予約を失敗させない）

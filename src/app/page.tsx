@@ -12,8 +12,10 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import LiffGate from "@/components/LiffGate";
 import TabBar from "@/components/TabBar";
+import SameDayNotice from "@/components/SameDayNotice";
 import { listCourts, availabilityRange } from "@/lib/gas";
 import { availabilitySymbol } from "@/lib/format";
+import { jstTodayYmd } from "@/lib/jst";
 import type { Court } from "@/lib/types";
 
 export default function CalendarPage() {
@@ -34,10 +36,8 @@ function Calendar() {
   const [courts, setCourts] = useState<Court[]>([]);
   const [activeCourtId, setActiveCourtId] = useState<string | null>(null);
   const [month, setMonth] = useState(() => {
-    const d = new Date();
-    d.setDate(1);
-    d.setHours(0, 0, 0, 0);
-    return d;
+    const [y, m] = jstTodayYmd().split("-").map(Number);
+    return new Date(y, m - 1, 1);
   });
   // 日付文字列 (yyyy-mm-dd) → 空き比率
   const [availMap, setAvailMap] = useState<Record<string, number>>({});
@@ -88,8 +88,8 @@ function Calendar() {
   }, [activeCourtId, month, courtsLoaded]);
 
   const grid = useMemo(() => buildMonthGrid(month), [month]);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // 端末のタイムゾーンに依存しないよう、日付は JST の YYYY-MM-DD 文字列で比べる
+  const todayYmd = jstTodayYmd();
 
   return (
     <div>
@@ -144,20 +144,31 @@ function Calendar() {
           const ratio = availMap[key] ?? null;
           // 読み込み中は記号を出さない（「—」だと異常に見えるため）
           const sym = availLoading ? "" : ratio === null ? "—" : availabilitySymbol(ratio);
-          // 当日も予約できる（過ぎた時間帯の枠は GAS 側で空きから除外される）。過去日のみ選択不可。
-          const isPast = cell.date < today;
+          // 当日は LINE では受け付けない（カウンターで相談）。翌日以降のみ選択可。
+          const isToday = key === todayYmd;
+          const isPast = key < todayYmd;
           const isOther = cell.date.getMonth() !== month.getMonth();
-          const disabled = isPast || isOther || sym === "×";
+          const disabled = isPast || isToday || isOther || sym === "×";
           if (disabled) {
             return (
               <div
                 key={key}
                 className="cal-cell"
                 data-disabled="true"
-                data-today={cell.date.getTime() === today.getTime()}
+                data-today={isToday}
               >
                 <span className="date">{cell.date.getDate()}</span>
-                <span className="sym">{isOther ? "" : sym}</span>
+                <span className="sym">
+                  {isOther ? (
+                    ""
+                  ) : isToday ? (
+                    <>
+                      店頭<span className="sr-only">（本日はカウンターでご相談ください）</span>
+                    </>
+                  ) : (
+                    sym
+                  )}
+                </span>
               </div>
             );
           }
@@ -166,7 +177,7 @@ function Calendar() {
               key={key}
               href={`/reserve/${key}?court=${activeCourtId ?? ""}`}
               className="cal-cell"
-              data-today={cell.date.getTime() === today.getTime()}
+              data-today={false}
             >
               <span className="date">{cell.date.getDate()}</span>
               <span className="sym">{sym}</span>
@@ -183,9 +194,7 @@ function Calendar() {
       ) : (
         <p className="mt-3 text-sm text-muted">◎ 空きあり / ○ 残りわずか / × 満席</p>
       )}
-      <p className="mt-1 text-xs text-muted">
-        ※ 当日のご予約も承ります。開始時刻を過ぎた枠はご予約いただけません。
-      </p>
+      <SameDayNotice className="mt-3" />
       <p className="mt-4 text-xs text-muted">
         <a
           href="https://himawari-co.pages.dev"

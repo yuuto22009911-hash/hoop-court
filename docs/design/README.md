@@ -41,7 +41,7 @@
 
 | # | 変わったこと | 現在の状態 | 詳細 |
 | --- | --- | --- | --- |
-| 1 | **当日予約を解禁** | 拒否するのは「開始時刻 < 現在時刻」だけ。**当日でも開始前なら予約できる** | [04-business-rules §5](./04-business-rules.md#5-予約できる時間当日判定) |
+| 1 | **LIFF からの当日予約を停止**（2026-10-15） | お客様は**翌日以降のみ**。当日はカウンター（電話）で相談。GAS は `P0013` で拒否（**本番未反映**）。管理画面の当日登録は従来どおり可 | [04-business-rules §5](./04-business-rules.md#5-予約できる時間当日判定) |
 | 2 | **管理用の4 action を追加** | `admin.reservations.create` / `cancel` / `admin.slots.list` / `set`。GAS Version 4 で本番稼働中 | [api/README.md](./api/README.md) |
 | 3 | **PayPay は利用不可** | 加盟店契約が未了。店頭・オンラインとも**使えない**。案内は**現金のみ**に統一済み | [04-business-rules §7](./04-business-rules.md#7-入金と売上) |
 | 4 | **返金は明示的に記録する** | キャンセルしただけでは売上から外れない。`admin.reservations.markRefunded` を実行して初めて外れる（**本番未反映**。GAS Version 5 で有効になる） | [04-business-rules §7-C](./04-business-rules.md#7-c-返金) |
