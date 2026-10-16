@@ -41,11 +41,11 @@
 
 | # | 変わったこと | 現在の状態 | 詳細 |
 | --- | --- | --- | --- |
-| 1 | **LIFF からの当日予約を停止**（2026-10-15） | お客様は**翌日以降のみ**。当日はカウンター（電話）で相談。GAS は `P0013` で拒否（**本番未反映**）。管理画面の当日登録は従来どおり可 | [04-business-rules §5](./04-business-rules.md#5-予約できる時間当日判定) |
+| 1 | **LIFF からの当日予約を停止**（2026-10-15） | お客様は**翌日以降のみ**。当日はカウンター（電話）で相談。GAS は `P0013` で拒否（Version 6（2026-10-16）で反映済み）。管理画面の当日登録は従来どおり可 | [04-business-rules §5](./04-business-rules.md#5-予約できる時間当日判定) |
 | 2 | **管理用の4 action を追加** | `admin.reservations.create` / `cancel` / `admin.slots.list` / `set`。GAS Version 4 で本番稼働中 | [api/README.md](./api/README.md) |
 | 3 | **PayPay は利用不可** | 加盟店契約が未了。店頭・オンラインとも**使えない**。案内は**現金のみ**に統一済み | [04-business-rules §7](./04-business-rules.md#7-入金と売上) |
-| 4 | **返金は明示的に記録する** | キャンセルしただけでは売上から外れない。`admin.reservations.markRefunded` を実行して初めて外れる（**本番未反映**。GAS Version 5 で有効になる） | [04-business-rules §7-C](./04-business-rules.md#7-c-返金) |
-| 5 | **占有判定に `COMPLETED` を含む** | 受付済みでも終了時刻が未来なら枠は埋まったまま。`isBlockingStatus_()` に集約（**本番未反映**。Version 5 で有効） | [04-business-rules §4](./04-business-rules.md#4-同時利用のルール) |
+| 4 | **返金は明示的に記録する** | キャンセルしただけでは売上から外れない。`admin.reservations.markRefunded` を実行して初めて外れる（GAS Version 5・2026-08-01 反映） | [04-business-rules §7-C](./04-business-rules.md#7-c-返金) |
+| 5 | **占有判定に `COMPLETED` を含む** | 受付済みでも終了時刻が未来なら枠は埋まったまま。`isBlockingStatus_()` に集約（GAS Version 5・2026-08-01 反映） | [04-business-rules §4](./04-business-rules.md#4-同時利用のルール) |
 
 > ⚠ 3 について。**「PayPay で支払える」と書いた案内が残っていたら、それは実態と食い違っています。**
 > LIFF 側の文言は hoop-court PR #28 で現金のみに統一しました（[04-business-rules §7-B](./04-business-rules.md#7-b-お客様への案内文言pr-28-で統一済み) に実文言）。
